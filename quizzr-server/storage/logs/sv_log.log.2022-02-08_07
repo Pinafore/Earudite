@@ -1,0 +1,17 @@
+[2022-02-08 07:35:20,302] INFO - server: Instantiated server with instance path '/fs/clip-quiz/saptab1/ASRQA/InterfaceDebug/quizzr-server'
+[2022-02-08 07:35:20,308] INFO - server: Creating instance directory...
+[2022-02-08 07:35:20,308] INFO - server: Created instance directory
+[2022-02-08 07:35:20,308] INFO - server: Configuring server instance...
+[2022-02-08 07:35:20,308] INFO - server: Using config with name 'sv_config.json'
+[2022-02-08 07:35:20,308] INFO - server: Config at path '/fs/clip-quiz/saptab1/ASRQA/InterfaceDebug/quizzr-server/config/sv_config.json' not found
+[2022-02-08 07:35:20,502] INFO - server: Finished configuring server instance
+[2022-02-08 07:35:20,502] INFO - server: Initializing third-party services...
+[2022-02-08 07:35:20,502] INFO - server: MongoDB Database Name = 'QuizzrDatabase'
+[2022-02-08 07:35:20,502] INFO - server: Firebase Blob Root = 'production'
+[2022-02-08 07:35:20,502] INFO - server: Environment set to 'production'
+[2022-02-08 07:35:20,649] INFO - server: Initialized third-party services
+[2022-02-08 07:35:20,658] INFO - server: Started pre-screening program
+[2022-02-08 07:35:20,658] INFO - server: No default rate limits defined. Skipping rate limiter initialization
+[2022-02-08 07:35:20,659] INFO - server: Completed initialization
+[2022-02-08 07:35:20,659] INFO - server.prescreen: Initializing...
+[2022-02-08 07:35:20,744] INFO - server.prescreen: Finished initialization. Entering main loop
