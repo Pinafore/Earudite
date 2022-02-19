@@ -5,7 +5,7 @@ const   createProxyMiddleware  = require("http-proxy-middleware");
 const PORT = 6800;
 
 const dataflowProxy = createProxyMiddleware({
-  target: "http://localhost:5100",
+  target: "http://localhost:5110",
   changeOrigin: true,
 	secure: false,
 	  "logLevel": "debug",
