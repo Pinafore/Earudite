@@ -20,7 +20,7 @@
     "firebase": "^8.9.1",
     "fs": "^0.0.1-security",
     "hls.js": "^1.0.10",
-    "http-proxy-middleware": "^2.0.1",
+    "http-proxy-middleware": "^2.0.3",
     "jquery": "^3.6.0",
     "morgan": "^1.10.0",
     "node-webvtt": "^1.9.3",

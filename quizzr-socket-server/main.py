@@ -372,6 +372,44 @@ def run_flask():
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description="Run the socket server", add_help=True)
+    parser.add_argument(
+        "--socketport",
+        dest="socketport",
+        type=int,
+        default=6571,
+    )
+    parser.add_argument(
+        "--secretpath",
+        dest="secretpath",
+        type=str,
+        default="/fs/clip-quiz/saptab1/ASRQA/Interface/quizzr-socket-server/quizzr.json",
+    )
+    parser.add_argument(
+        "--handshake",
+        dest="handshake",
+        type=str,
+        default="I-AM-A-SECRET-KEY",
+    )
+    parser.add_argument(
+        "--hlsurl",
+        dest="hlsurl",
+        type=str,
+        default="http://localhost:4541",
+    )
+    parser.add_argument(
+        "--backendurl",
+        dest="backendurl",
+        type=str,
+        default="http://localhost:5110",
+    )
+    args = parser.parse_args()
+    os.environ["HLS_HANDSHAKE"] = args.handshake
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = args.secretpath
+    os.environ["HLS_URL"] = args.hlsurl
+    os.environ["BACKEND_URL"] = args.backendurl
+    os.environ["SOCKET_PORT"] = str(args.socketport)
     eventlet.spawn(emit_game_state)
     eventlet.spawn(emit_lobby_state)
     eventlet.spawn(clean_lobbies_and_games)
