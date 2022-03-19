@@ -220,9 +220,13 @@ function AnswerBox(props) {
   useEffect(() => {
     resetForNewQuestion();
     setIsReady(!(speechMode > 0));
-    setTimeout(() => {
+    const readyTO = setTimeout(() => {
       setIsReady(speechMode > 0);
     }, 100);
+
+    return () => {
+      clearTimeout(readyTO);
+    }
   }, [props.question]);
 
   // useEffect(() => {
@@ -285,7 +289,12 @@ function AnswerBox(props) {
         const volumeInterval = setInterval(() => {
           volumeCallback();
         }, 100);
-        return () => clearInterval(volumeInterval);
+        return () => {
+          audioStream.getTracks().forEach(function(track) {
+            track.stop();
+          });
+          clearInterval(volumeInterval);
+        };
       } catch(e) {
         setSpeechMode(0);
         console.error("Microphone not detected: ", e);
