@@ -2469,9 +2469,9 @@
     "@types/react" "*"
 
 "@types/react-speech-recognition@^3.6.1":
-  "integrity" "sha512-Lb2p28jMY+rEGgyCq4dtVQ8WQIMAmFakSrN7on00+mpXN2nC/mwXiAAwAGRPEpaHUpqLxZ7MwSjLPV/AgAlOHg=="
-  "resolved" "https://registry.npmjs.org/@types/react-speech-recognition/-/react-speech-recognition-3.6.1.tgz"
-  "version" "3.6.1"
+  "integrity" "sha512-GstxYfAs4kFPPTQ3p2RU2NmRni5CnxUCHPioq4UytitootYa7iA4aEvXEXHH7S330kMcBY1MuhJ6CV696++0PQ=="
+  "resolved" "https://registry.npmjs.org/@types/react-speech-recognition/-/react-speech-recognition-3.9.0.tgz"
+  "version" "3.9.0"
 
 "@types/react-transition-group@^4.2.0", "@types/react-transition-group@^4.4.1":
   "integrity" "sha512-vIo69qKKcYoJ8wKCJjwSgCTM+z3chw3g18dkrDfVX665tMH7tmbDxEAnPdey4gTlwZz5QuHGzd+hul0OVZDqqQ=="
@@ -3179,10 +3179,10 @@
   dependencies:
     "safer-buffer" "~2.1.0"
 
-"asr-answering@^1.1.0":
-  "integrity" "sha512-wvqMh7YjZ2CwSWYePm+ZJFDqK3HVKnW7shQ1L2Uv6209kTv70dAfQDvyE4L8KGP1158heRaz0NzOxVA0RuSimw=="
-  "resolved" "https://registry.npmjs.org/asr-answering/-/asr-answering-1.1.0.tgz"
-  "version" "1.1.0"
+"asr-answering@^4.1.6":
+  "integrity" "sha512-hyzIIe9yIsHxj4JO0r7agq4HhTQCbswpwZuNvhLVaR4RiEry+Umahv8yFcPZeNAD+ZyJch2QpfV+CP7HALxK2Q=="
+  "resolved" "https://registry.npmjs.org/asr-answering/-/asr-answering-4.1.6.tgz"
+  "version" "4.1.6"
   dependencies:
     "@tensorflow-models/speech-commands" "^0.5.4"
     "@tensorflow/tfjs" "^3.11.0"

@@ -1,4 +1,3 @@
-import "../styles/AnswerBox.css";
 import { useState, useEffect, useRef } from "react";
 import { useOnlineAnswering } from "asr-answering";
 import MicOffIcon from "@material-ui/icons/MicOff";
@@ -6,6 +5,9 @@ import { useRecoilValue } from "recoil";
 import { AUTHTOKEN, PROFILE, URLS, SOCKET } from "../store";
 import { useAlert } from "react-alert";
 import axios from "axios";
+import { ProgressBar } from "react-bootstrap";
+import "../pkg/StackedProgressBar.css";
+import "../styles/AnswerBox.css";
 
 function useKeyPress(targetKey, fnCall, deps, condition) {
   const [keyPressed, setKeyPressed] = useState(false);
@@ -86,8 +88,8 @@ function VoiceButton(props) {
   
 }
 
-async function initialize2(foo) {
-  await foo();
+async function initialize2(foo, foo2) {
+  await foo().then(() => {foo2();});
 }
 
 
@@ -99,7 +101,7 @@ function AnswerBox(props) {
   const authtoken = useRecoilValue(AUTHTOKEN);
   const alert = useAlert();
   const socket = useRecoilValue(SOCKET);
-
+  const [showProgressBar, setShowProgressBar] = useState(false);
   const [speechMode, setSpeechMode] = useState(0);
 
   // ASR always picks up the wake word, this function removes it
@@ -138,7 +140,7 @@ function AnswerBox(props) {
     // eslint-disable-next-line
     listening,
     // eslint-disable-next-line
-    recordingState,
+    recordingState: status,
     // eslint-disable-next-line
     timeLeft,
     // eslint-disable-next-line
@@ -153,6 +155,12 @@ function AnswerBox(props) {
     error,
     // eslint-disable-next-line
     errormsg,
+    // eslint-disable-next-line
+    manager,
+    // eslint-disable-next-line
+    ready,
+    resetForNewQuestion,
+    processingAudio,
   } = useOnlineAnswering({
     audio: {
       buzzin:
@@ -203,12 +211,36 @@ function AnswerBox(props) {
     gameTime: 9000000,
     onBuzzin: () => buzzin(),
     ASRthreshold: 0.8,
+    onSubmit: () => {
+      submit1();
+    }
   });
 
+  // On question change reset ASR
+  useEffect(() => {
+    resetForNewQuestion();
+    setIsReady(!(speechMode > 0));
+    setTimeout(() => {
+      setIsReady(speechMode > 0);
+    }, 100);
+  }, [props.question]);
+
+  // useEffect(() => {
+  //   console.log(timeLeft, processingAudio, status, listening);
+  // }, [timeLeft, processingAudio, status, listening])
+
+  // On speech mode change update if ASR is ready
   useEffect(()=> {
     setIsReady(speechMode > 0);
-    console.log((speechMode > 0));
   },[speechMode]);
+
+  // Start listening and reset stage when ready
+  useEffect(() => {
+    if(ready) {
+      manager.resetStage();
+      startListening();
+    }
+  }, [ready]);
 
   useEffect(() => {
     if(props.buzzer !== username) {
@@ -217,9 +249,8 @@ function AnswerBox(props) {
   }, [props,username])
 
   useEffect(()=> {
-    initialize2(initialize);
-    startListening();
-    // eslint-disable-next-line
+    console.log("IS LISTENING");
+    initialize();
   },[]);
 
   useKeyPress("Enter", submit1, [props.answer], true);
@@ -313,6 +344,12 @@ function AnswerBox(props) {
           Submit
         </div>
       </div>
+      {(['recording', 'stopping'].includes(status) || processingAudio) &&
+        <div className="answerbox-asr-progressbar-wrapper">
+          <ProgressBar now={timeLeft/6000*100} variant={"danger"} striped={true} animated={true} label={(!processingAudio ? "Listening..." : "Processing...")}/>
+        </div>
+      }
+      
       {speechMode === 1 &&
         <div class="answerbox-answering-voice-instructions">
           Speech Recognition: Say
