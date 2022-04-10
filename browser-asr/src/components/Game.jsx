@@ -671,6 +671,7 @@ function Game() {
                     classifiable={classifiable}
                     answer={answerText}
                     setAnswer={setAnswerText}
+                    question={state.question}
                   />
                 </div>
               </div>
