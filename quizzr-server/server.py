@@ -108,6 +108,10 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1},
                 "collection": "Users"
             },
+            "leaderboard": {
+                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "recordingScore": 1},
+                "collection": "Users"
+            },
             "public": {
                 "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1},
                 "collection": "Users"
@@ -1370,11 +1374,11 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
     @app.route("/leaderboard/audio", methods=["GET"])
     def get_audio_leaderboard():
         """
-        Get the basic profiles of the top ``size`` players based on the number of recordings they have.
+        Get the leaderboard profiles of the top ``size`` players based on the number of recordings they have.
 
         :return: A dictionary containing the "results"
         """
-        visibility_config = app.config["VISIBILITY_CONFIGS"]["basic"]
+        visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboard"]
         arg_size = request.args.get("size")
         size = arg_size or app.config["DEFAULT_LEADERBOARD_SIZE"]
         cursor = qtpm.database.get_collection(visibility_config["collection"]).find(
