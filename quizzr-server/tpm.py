@@ -504,14 +504,16 @@ class QuizzrTPM:
         other_audio_batch = []
         uid2rec_docs = {}
         qid2rec_docs = {}
-        self.logger.info("Preparing document entries...")
         user_batch_uuids = {}
+        user_cumulative_scores = {}
+        self.logger.info("Preparing document entries...")
         for submission, audio_id in sub2blob.items():
             entry = {
                 "_id": audio_id,
                 "version": self.config["VERSION"]
             }
             metadata = sub2meta[submission]
+            uid = metadata["userId"]
             for k, v in metadata.items():
                 if not k.startswith("__"):
                     entry[k] = v
@@ -522,17 +524,26 @@ class QuizzrTPM:
                 if metadata["qb_id"] not in qid2rec_docs:
                     qid2rec_docs[metadata["qb_id"]] = []
                 qid2rec_docs[metadata["qb_id"]].append({"id": audio_id, "recType": metadata["recType"]})
+
+                if uid not in user_batch_uuids:
+                    user_batch_uuids[uid] = set()
+                if uid not in user_cumulative_scores:
+                    user_cumulative_scores[uid] = 0
+
+                rec_score = self.calculate_rec_score(metadata["qb_id"])
+                entry["recordingScore"] = rec_score
+                if metadata["batchUUID"] not in user_batch_uuids[uid]:
+                    user_cumulative_scores[uid] += rec_score
+
+                user_batch_uuids[uid].add(metadata["batchUUID"])
             if metadata["recType"] not in processing_list:
                 other_audio_batch.append(entry)
             else:
                 question_audio_batch.append(entry)
 
-            if metadata["userId"] not in uid2rec_docs:
-                uid2rec_docs[metadata["userId"]] = []
-            uid2rec_docs[metadata["userId"]].append({"id": audio_id, "recType": metadata["recType"]})
-            if metadata["userId"] not in user_batch_uuids:
-                user_batch_uuids[metadata["userId"]] = set()
-            user_batch_uuids[metadata["userId"]].add(metadata["batchUUID"])
+            if uid not in uid2rec_docs:
+                uid2rec_docs[uid] = []
+            uid2rec_docs[uid].append({"id": audio_id, "recType": metadata["recType"]})
 
             self._debug_variable("entry", entry)
 
@@ -554,8 +565,8 @@ class QuizzrTPM:
             proc_results = self.audio.insert_many(other_audio_batch)
             self.logger.info(f"Inserted {len(proc_results.inserted_ids)} buzz and/or answer recording(s) into the Audio collection")
         self.add_recs_to_users(uid2rec_docs)
-        for uid, batch_uuids in user_batch_uuids.items():
-            self.increment_num_recs(uid, len(batch_uuids))
+        for uid, cumulative_score in user_cumulative_scores.items():
+            self.users.update_one({"_id": uid}, {"$inc": {"recordingScore": cumulative_score}})
         return question_rec_results, proc_results
 
     def get_profile(self, user_id: str, visibility: str) -> Optional[dict]:
@@ -599,7 +610,7 @@ class QuizzrTPM:
             "playTime": 0,
             "creationDate": datetime.now().isoformat(),
             "recVotes": [],
-            "numRecs": 0
+            "recordingScore": 0
         }
         return self.users.insert_one(profile)
 
@@ -640,19 +651,6 @@ class QuizzrTPM:
         if "permLevel" not in profile:
             raise MalformedProfileError(f"Field 'permLevel' not found in profile for user '{user_id}'")
         return profile["permLevel"]
-
-    def increment_num_recs(self, user_id: str, count: int):
-        """
-        Increment the ``"numRecs"`` field for a user.
-
-        :param user_id: The ID of the user profile
-        :param count: The count by which to increment
-        """
-        self.users.update_one({"_id": user_id}, {
-            "$inc": {
-                "numRecs": count
-            }
-        })
 
     def add_rec_rating(self, audio_id: str, user_id: str, rating: float):
         """
@@ -744,6 +742,18 @@ class QuizzrTPM:
             lower_bound = difficulty_limits[difficulty - 1] if difficulty > 0 else None
             if (not lower_bound or lower_bound <= rec_difficulty) and (not upper_bound or rec_difficulty < upper_bound):
                 return difficulty
+
+    def calculate_rec_score(self, qb_id):
+        """
+        Calculate the recording score based on a question.
+
+        :param qb_id: The ID of the question to use.
+        :return: The score
+        """
+        doc = self.unrec_questions.find_one({"qb_id": qb_id})
+        if doc is None:
+            doc = self.rec_questions.find_one({"qb_id": qb_id})
+        return round(doc["recDifficulty"])
 
     def _debug_variable(self, name: str, v, include_type=False):
         """

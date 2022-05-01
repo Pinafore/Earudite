@@ -1378,8 +1378,8 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         arg_size = request.args.get("size")
         size = arg_size or app.config["DEFAULT_LEADERBOARD_SIZE"]
         cursor = qtpm.database.get_collection(visibility_config["collection"]).find(
-            {f"numRecs": {"$exists": True, "$gt": 0}},
-            sort=[(f"numRecs", pymongo.DESCENDING)],
+            {f"recordingScore": {"$exists": True, "$gt": 0}},
+            sort=[(f"recordingScore", pymongo.DESCENDING)],
             limit=size,
             projection=visibility_config["projection"]
         )
