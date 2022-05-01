@@ -139,8 +139,6 @@ class QuizzrProcessorHead:
             self.submission_file_types = submission_file_types
         self.directory = directory  # May be used for the Montreal Forced Aligner
         self.rec_directory = os.path.join(self.directory, "queue")
-        # if not os.path.exists(self.rec_directory):
-        #     os.makedirs(self.rec_directory)
         self.logger = logger or logging.getLogger(__name__)
         self.qp = QuizzrProcessor(qtpm.database, self.rec_directory, config, submission_file_types, self.logger)
 
@@ -259,7 +257,6 @@ class QuizzrProcessor:
         if "normal" in typed_submissions:
             preprocess_list = QuizzrProcessor.bundle_submissions(typed_submissions["normal"])
             results = self.preprocess_submissions(preprocess_list, sub2meta)
-            # for submission in typed_submissions['normal']:
             for submission, result in results:
                 if type(submission) is list:
                     batch_uuid = str(uuid4())
@@ -559,14 +556,17 @@ class QuizzrProcessor:
         submissions are left as single strings.
 
         :param submissions: The submissions to "bundle"
-        :return: A list where submissions that end with "b<number>" are grouped by their base name and where standalone
-        submissions are left as single strings
+        :return: A sorted list where submissions that end with "b<number>" are grouped by their base name and where
+        standalone submissions are left as single strings
         """
+
+        sorted_submissions = submissions.copy()
+        sorted_submissions.sort()
         bundle_list = []
         next_bundle = []
         prev_token = None
 
-        for i, submission in enumerate(submissions):
+        for i, submission in enumerate(sorted_submissions):
             match = re.match(BATCH_SUBMISSION_REGEX, submission)
 
             if match:
@@ -582,7 +582,7 @@ class QuizzrProcessor:
                 bundle_list.append(next_bundle)
                 next_bundle = []
 
-            if i + 1 >= len(submissions) and next_bundle:
+            if i + 1 >= len(sorted_submissions) and next_bundle:
                 bundle_list.append(next_bundle)
                 next_bundle = []
 

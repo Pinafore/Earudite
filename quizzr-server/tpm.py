@@ -37,7 +37,6 @@ class QuizzrTPM:
         :param config: The configuration to use
         :param firebase_app_specifier: A string specifying the path to the service account key or a Firebase app
         """
-        # self.MAX_RETRIES = int(os.environ.get("MAX_RETRIES") or 5)
         self.logger = logger or logging.getLogger(__name__)
         self.config = config
 
@@ -225,6 +224,12 @@ class QuizzrTPM:
         file_bytes = blob.download_as_bytes()
         fh = io.BytesIO(file_bytes)
         return fh
+
+    def delete_file_blob(self, blob_path: str):
+        blob_name = "/".join([self.config["BLOB_ROOT"], blob_path])
+        self._debug_variable("blob_name", blob_name)
+        blob = self.bucket.blob(blob_name)
+        blob.delete()
 
     def find_best_audio_doc(self,
                             id_list: List[str],
@@ -444,7 +449,6 @@ class QuizzrTPM:
         upload_count = 0
         for file_path in file_paths:
             file_name = os.path.basename(file_path)
-            # blob_name = token_urlsafe(self.config["BLOB_NAME_LENGTH"])
             blob_name = str(uuid4())
             blob_path = self.get_blob_path(blob_name, subdir)
             blob = self.bucket.blob(blob_path)
@@ -500,6 +504,8 @@ class QuizzrTPM:
         other_audio_batch = []
         uid2rec_docs = {}
         qid2rec_docs = {}
+        user_batch_uuids = {}
+        user_cumulative_scores = {}
         self.logger.info("Preparing document entries...")
         for submission, audio_id in sub2blob.items():
             entry = {
@@ -507,6 +513,7 @@ class QuizzrTPM:
                 "version": self.config["VERSION"]
             }
             metadata = sub2meta[submission]
+            uid = metadata["userId"]
             for k, v in metadata.items():
                 if not k.startswith("__"):
                     entry[k] = v
@@ -517,14 +524,26 @@ class QuizzrTPM:
                 if metadata["qb_id"] not in qid2rec_docs:
                     qid2rec_docs[metadata["qb_id"]] = []
                 qid2rec_docs[metadata["qb_id"]].append({"id": audio_id, "recType": metadata["recType"]})
+
+                if uid not in user_batch_uuids:
+                    user_batch_uuids[uid] = set()
+                if uid not in user_cumulative_scores:
+                    user_cumulative_scores[uid] = 0
+
+                rec_score = self.calculate_rec_score(metadata["qb_id"])
+                entry["recordingScore"] = rec_score
+                if metadata["batchUUID"] not in user_batch_uuids[uid]:
+                    user_cumulative_scores[uid] += rec_score
+
+                user_batch_uuids[uid].add(metadata["batchUUID"])
             if metadata["recType"] not in processing_list:
                 other_audio_batch.append(entry)
             else:
                 question_audio_batch.append(entry)
 
-            if metadata["userId"] not in uid2rec_docs:
-                uid2rec_docs[metadata["userId"]] = []
-            uid2rec_docs[metadata["userId"]].append({"id": audio_id, "recType": metadata["recType"]})
+            if uid not in uid2rec_docs:
+                uid2rec_docs[uid] = []
+            uid2rec_docs[uid].append({"id": audio_id, "recType": metadata["recType"]})
 
             self._debug_variable("entry", entry)
 
@@ -546,6 +565,8 @@ class QuizzrTPM:
             proc_results = self.audio.insert_many(other_audio_batch)
             self.logger.info(f"Inserted {len(proc_results.inserted_ids)} buzz and/or answer recording(s) into the Audio collection")
         self.add_recs_to_users(uid2rec_docs)
+        for uid, cumulative_score in user_cumulative_scores.items():
+            self.users.update_one({"_id": uid}, {"$inc": {"recordingScore": cumulative_score}})
         return question_rec_results, proc_results
 
     def get_profile(self, user_id: str, visibility: str) -> Optional[dict]:
@@ -588,7 +609,8 @@ class QuizzrTPM:
             "permLevel": "normal",
             "playTime": 0,
             "creationDate": datetime.now().isoformat(),
-            "recVotes": []
+            "recVotes": [],
+            "recordingScore": 0
         }
         return self.users.insert_one(profile)
 
@@ -629,20 +651,6 @@ class QuizzrTPM:
         if "permLevel" not in profile:
             raise MalformedProfileError(f"Field 'permLevel' not found in profile for user '{user_id}'")
         return profile["permLevel"]
-
-    def increment_num_recs(self, user_id: str, difficulty: int):
-        """
-        Increment the ``"numRecs"`` stat for a user.
-
-        :param user_id: The ID of the user profile
-        :param difficulty: The recording difficulty type to increment, including "all"
-        """
-        self.users.update_one({"_id": user_id}, {
-            "$inc": {
-                "stats.recordings.numRecs.all": 1,
-                f"stats.recordings.numRecs.{difficulty}": 1
-            }
-        })
 
     def add_rec_rating(self, audio_id: str, user_id: str, rating: float):
         """
@@ -734,6 +742,18 @@ class QuizzrTPM:
             lower_bound = difficulty_limits[difficulty - 1] if difficulty > 0 else None
             if (not lower_bound or lower_bound <= rec_difficulty) and (not upper_bound or rec_difficulty < upper_bound):
                 return difficulty
+
+    def calculate_rec_score(self, qb_id):
+        """
+        Calculate the recording score based on a question.
+
+        :param qb_id: The ID of the question to use.
+        :return: The score
+        """
+        doc = self.unrec_questions.find_one({"qb_id": qb_id})
+        if doc is None:
+            doc = self.rec_questions.find_one({"qb_id": qb_id})
+        return round(doc["recDifficulty"])
 
     def _debug_variable(self, name: str, v, include_type=False):
         """
