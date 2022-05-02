@@ -142,7 +142,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
     if os.path.exists(conf_path):
         with open(conf_path, "r") as config_f:
             config = json.load(config_f)
-        app_conf.update(config)
+        sv_util.deep_update(app_conf, config)
     else:
         app.logger.info(f"Config at path '{conf_path}' not found")
 
