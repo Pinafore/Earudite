@@ -1,0 +1,25 @@
+{
+    "results": [
+        {
+            "audio": [
+                {
+                    "id": "e509efd7-a46d-4988-a387-59596c7b8014",
+                    "tokenizationId": 0,
+                    "vtt": "WEBVTT Kind: captions; Language: en\n\n00:0.640 --> 00:0.750\n<v Speaker 0>In\n\n00:0.750 --> 00:1.050\n<v Speaker 0>2015\n\n00:1.700 --> 00:1.790\n<v Speaker 0>an\n\n00:1.790 --> 00:2.110\n<v Speaker 0>ultrasound\n\n00:2.300 --> 00:2.610\n<v Speaker 0>machine\n\n00:2.800 --> 00:2.869\n<v Speaker 0>was\n\n00:2.940 --> 00:3.120\n<v Speaker 0>used\n\n00:3.120 --> 00:3.170\n<v Speaker 0>to\n\n00:3.240 --> 00:3.360\n<v Speaker 0>assist\n\n00:4.160 --> 00:4.350\n<v Speaker 0>Charles\n\n00:4.360 --> 00:4.410\n<v Speaker 0>Warner\n\n00:4.630 --> 00:4.649\n<v Speaker 0>in\n\n00:5.090 --> 00:5.529\n<v Speaker 0>undergoing\n\n00:5.529 --> 00:5.709\n<v Speaker 0>this\n\n00:5.739 --> 00:6.330\n<v Speaker 0>procedure."
+                },
+                {
+                    "id": "fdd381e2-1a08-4e4d-b1dd-4217f8d4fd9e",
+                    "tokenizationId": 2,
+                    "vtt": "WEBVTT Kind: captions; Language: en\n\n00:1.390 --> 00:1.509\n<v Speaker 0>In\n\n00:1.510 --> 00:1.700\n<v Speaker 0>2014\n\n00:1.740 --> 00:2.250\n<v Speaker 0>Michael\n\n00:2.250 --> 00:2.580\n<v Speaker 0>Lee\n\n00:2.590 --> 00:3.190\n<v Speaker 0>Wilson\n\n00:3.200 --> 00:3.730\n<v Speaker 0>stated\n\n00:3.770 --> 00:3.960\n<v Speaker 0>\"I\n\n00:3.960 --> 00:4.250\n<v Speaker 0>feel\n\n00:4.250 --> 00:4.430\n<v Speaker 0>my\n\n00:4.430 --> 00:4.790\n<v Speaker 0>whole\n\n00:4.800 --> 00:5.180\n<v Speaker 0>body\n\n00:5.180 --> 00:5.630\n<v Speaker 0>burning\"\n\n00:5.630 --> 00:5.810\n<v Speaker 0>while\n\n00:5.830 --> 00:6.699\n<v Speaker 0>undergoing--for\n\n00:6.700 --> 00:6.880\n<v Speaker 0>10\n\n00:6.880 --> 00:7.410\n<v Speaker 0>points--what\n\n00:7.700 --> 00:8.070\n<v Speaker 0>form\n\n00:8.080 --> 00:8.260\n<v Speaker 0>of\n\n00:8.260 --> 00:8.990\n<v Speaker 0>execution?"
+                },
+                {
+                    "id": "a247b808-5da8-4d45-8793-a821aee93ebb",
+                    "tokenizationId": 1,
+                    "vtt": "WEBVTT Kind: captions; Language: en\n\n00:7.510 --> 00:7.529\n<v Speaker 0>The\n\n00:7.530 --> 00:13.480\n<v Speaker 0>use\n\n00:13.480 --> 00:13.630\n<v Speaker 0>of\n\n00:13.630 --> 00:14.305\n<v Speaker 0>midazolam\n\n00:14.305 --> 00:14.455\n<v Speaker 0>as\n\n00:14.455 --> 00:14.530\n<v Speaker 0>a\n\n00:14.530 --> 00:14.980\n<v Speaker 0>sodium\n\n00:14.980 --> 00:15.730\n<v Speaker 0>thiopental\n\n00:15.730 --> 00:16.555\n<v Speaker 0>replacement\n\n00:16.555 --> 00:16.705\n<v Speaker 0>in\n\n00:16.705 --> 00:17.005\n<v Speaker 0>this\n\n00:17.005 --> 00:17.680\n<v Speaker 0>procedure\n\n00:17.680 --> 00:17.905\n<v Speaker 0>was\n\n00:17.905 --> 00:18.655\n<v Speaker 0>challenged\n\n00:18.655 --> 00:18.805\n<v Speaker 0>in\n\n00:18.805 --> 00:19.030\n<v Speaker 0>the\n\n00:19.030 --> 00:19.555\n<v Speaker 0>Supreme\n\n00:19.555 --> 00:19.930\n<v Speaker 0>Court\n\n00:19.930 --> 00:20.230\n<v Speaker 0>case\n\n00:20.230 --> 00:20.755\n<v Speaker 0>Glossip\n\n00:20.755 --> 00:20.830\n<v Speaker 0>v.\n\n00:20.830 --> 00:21.205\n<v Speaker 0>Gross.\n\n00:21.205 --> 00:21.880\n<v Speaker 0>Potassium\n\n00:21.880 --> 00:22.480\n<v Speaker 0>chloride\n\n00:22.480 --> 00:22.630\n<v Speaker 0>is\n\n00:22.630 --> 00:23.005\n<v Speaker 0>often\n\n00:23.005 --> 00:23.230\n<v Speaker 0>the\n\n00:23.230 --> 00:23.530\n<v Speaker 0>last\n\n00:23.530 --> 00:23.830\n<v Speaker 0>drug\n\n00:23.830 --> 00:23.980\n<v Speaker 0>in\n\n00:23.980 --> 00:24.280\n<v Speaker 0>this\n\n00:24.280 --> 00:25.105\n<v Speaker 0>procedure's\n\n00:25.105 --> 00:25.705\n<v Speaker 0>\"cocktail.\""
+                }
+            ],
+            "category": null,
+            "qb_id": 7000010
+        }
+    ]
+}

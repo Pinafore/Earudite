@@ -238,6 +238,12 @@ function AnswerBox(props) {
     setIsReady(speechMode > 0);
   },[speechMode]);
 
+  useEffect(() => {
+    if(!props.state.inGame) {
+      stopListening();
+    }
+  }, [props.state.inGame])
+
   // Start listening and reset stage when ready
   useEffect(() => {
     if(ready) {
