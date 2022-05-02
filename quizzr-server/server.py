@@ -99,7 +99,9 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             "unkToken": "<unk>",
             "minAccuracy": 0.5,
             "queueLimit": 32,
-            "timeout": 60
+            "timeout": 60,
+            "standardizedSampleRate": 44100,
+            "convertToMono": True
         },
         "DEV_UID": "dev",
         "LOG_PRIVATE_DATA": False,
