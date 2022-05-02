@@ -11,7 +11,9 @@ RUN apt-get update \
         unzip \
     && git clone https://github.com/lowerquality/gentle.git \
     && pip install incremental \
-    && cd gentle && ./install.sh
+    && cd gentle \
+    && git checkout 2148efccf0 \
+    && ./install.sh
 WORKDIR /quizzr-src
 #RUN groupadd -r qserver && useradd --no-log-init -rm -g qserver qserver
 #USER qserver
