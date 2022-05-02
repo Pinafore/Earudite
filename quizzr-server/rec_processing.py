@@ -14,6 +14,8 @@ from uuid import uuid4
 
 # import audioevaluator.evaluator
 import bson.json_util
+import librosa
+import soundfile as sf
 from func_timeout import func_timeout, FunctionTimedOut
 from pymongo.database import Database
 
@@ -469,6 +471,8 @@ class QuizzrProcessor:
         # asr_score = audioevaluator.evaluator.evaluate_audio(wav_file_path, r_transcript)
         asr_score = {}
 
+        self.standardize_audio(wav_file_path)
+
         return {"accuracyFraction": (aligned_words, num_words), "vtt": vtt, "score": asr_score}
         # return {"accuracyFraction": (aligned_words, num_words), "vtt": vtt, "score": {"wer": 0, "mer": 0, "wil": 0}}
 
@@ -531,6 +535,25 @@ class QuizzrProcessor:
         with closing(wave.open(submission_path, "r")) as f:
             duration = f.getnframes() / f.getframerate()
         return duration
+
+    def standardize_audio(self, file_path: str):
+        """
+        Resample the audio file to the ``"standardizedSampleRate"`` and convert to mono if ``"convertToMono"`` is
+        ``True``
+
+        PRECONDITION: Audio file is WAV
+
+        POSTCONDITION: Audio file has a sample rate of ``"standardizedSampleRate"`` and is converted to mono if
+        configured
+
+        :param file_path: The path to the file
+        """
+        with open(file_path, "rb") as f:
+            data, sample_rate = librosa.load(f, sr=None, mono=False)
+
+        mid_step = librosa.to_mono(data) if self.config["convertToMono"] else data
+        standardized = librosa.resample(mid_step, orig_sr=sample_rate, target_sr=self.config["standardizedSampleRate"])
+        sf.write(file_path, standardized, self.config["standardizedSampleRate"], 'PCM_16', format='wav')
 
     @staticmethod
     def categorize_submissions(submissions: List[str], sub2meta: Dict[str, dict]):

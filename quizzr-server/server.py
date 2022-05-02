@@ -89,7 +89,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         "BLOB_ROOT": "production",
         # "BLOB_NAME_LENGTH": 32,
         "Q_ENV": PROD_ENV_NAME,
-        "SUBMISSION_FILE_TYPES": ["wav", "json", "vtt"],
+        "SUBMISSION_FILE_TYPES": ["wav", "json", "vtt", "wav.aes"],
         # "DIFFICULTY_LIMITS": [3, 6, None],
         "DIFFICULTY_DIST": [0.6, 0.3, 0.1],
         "VERSION": "0.2.0",
@@ -99,7 +99,9 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             "unkToken": "<unk>",
             "minAccuracy": 0.5,
             "queueLimit": 32,
-            "timeout": 60
+            "timeout": 60,
+            "standardizedSampleRate": 44100,
+            "convertToMono": True
         },
         "DEV_UID": "dev",
         "LOG_PRIVATE_DATA": False,
@@ -140,7 +142,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
     if os.path.exists(conf_path):
         with open(conf_path, "r") as config_f:
             config = json.load(config_f)
-        app_conf.update(config)
+        sv_util.deep_update(app_conf, config)
     else:
         app.logger.info(f"Config at path '{conf_path}' not found")
 
