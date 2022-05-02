@@ -47,7 +47,7 @@ const Recorder = (props) => {
   const classes = useStyles();
   const audioProps = {
     audioType: "audio/wav",
-    // audioOptions: { sampleRate: 3000 },
+    audioOptions: { sampleRate: 44100 },
     status,
     audioSrc,
     timeslice: 1000, // timeslice（https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/start#Parameters）
