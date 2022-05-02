@@ -613,7 +613,7 @@ class QuizzrTPM:
             "pfp": pfp,
             "username": username,
             "usernameSpecs": '',
-            "ratings": {},
+            "ratings": 0,
             "totalQuestionsPlayed": 0,
             "totalGames": 0,
             "coins": 0,

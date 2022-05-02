@@ -111,7 +111,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 "collection": "Users"
             },
             "leaderboard": {
-                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "recordingScore": 1},
+                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "recordingScore": 1, "ratings": 1},
                 "collection": "Users"
             },
             "public": {
@@ -931,6 +931,41 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         qtpm.users.bulk_write(update_batch)
 
+    @app.post("/game/ratings")
+    def increment_ratings():
+        args = request.get_json()
+        if args is None:
+            return _make_err_response(
+                "No arguments specified",
+                "no_args",
+                HTTPStatus.BAD_REQUEST,
+                log_msg=True
+            )
+        ratings = args.get("ratings")
+        if not ratings:
+            return _make_err_response(
+                "No 'ratings' argument provided",
+                "undefined_args",
+                HTTPStatus.BAD_REQUEST,
+                log_msg=True
+            )
+
+        update_batch = []
+        for username, rating in ratings.items():
+            update_batch.append(UpdateOne({"username": username}, {"$inc": {"ratings": rating}}))
+
+        if not update_batch:
+            return _make_err_response(
+                "No users to update",
+                "empty_args",
+                HTTPStatus.BAD_REQUEST,
+                log_msg=True
+            )
+
+        qtpm.users.bulk_write(update_batch)
+
+        return "", HTTPStatus.OK
+
     def handle_game_results_category(session_results):
         """
         Update the database with the results of a game session with only one category.
@@ -1357,7 +1392,6 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         :return: A dictionary containing the "results"
         """
-        category = request.args.get("category") or "all"
         arg_size = request.args.get("size")
         size = arg_size or app.config["DEFAULT_LEADERBOARD_SIZE"]
         if size > app.config["MAX_LEADERBOARD_SIZE"]:
@@ -1368,10 +1402,10 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 ["exceeds_value", app.config["MAX_LEADERBOARD_SIZE"]],
                 True
             )
-        visibility_config = app.config["VISIBILITY_CONFIGS"]["basic"]
+        visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboard"]
         cursor = qtpm.database.get_collection(visibility_config["collection"]).find(
-            {f"ratings.{category}": {"$exists": True}},
-            sort=[(f"ratings.{category}", pymongo.DESCENDING)],
+            {"ratings": {"$exists": True, "$gt": 0}},
+            sort=[("ratings", pymongo.DESCENDING)],
             limit=size,
             projection=visibility_config["projection"]
         )
