@@ -89,7 +89,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         "BLOB_ROOT": "production",
         # "BLOB_NAME_LENGTH": 32,
         "Q_ENV": PROD_ENV_NAME,
-        "SUBMISSION_FILE_TYPES": ["wav", "json", "vtt"],
+        "SUBMISSION_FILE_TYPES": ["wav", "json", "vtt", "wav.aes"],
         # "DIFFICULTY_LIMITS": [3, 6, None],
         "DIFFICULTY_DIST": [0.6, 0.3, 0.1],
         "VERSION": "0.2.0",

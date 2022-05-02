@@ -42,6 +42,7 @@ pluggy==0.13.1
 proto-plus==1.19.0
 protobuf==3.17.3
 py==1.10.0
+pyAesCrypt==6.0.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pycparser==2.20

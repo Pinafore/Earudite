@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Tuple, Optional, Union
 # from secrets import token_urlsafe
 from uuid import uuid4
 
+import pyAesCrypt
 import pymongo
 from pymongo import UpdateOne
 from pymongo.collection import Collection
@@ -20,6 +21,8 @@ from firebase_admin import credentials, storage
 from pymongo.results import InsertManyResult
 
 from sv_errors import UsernameTakenError, ProfileNotFoundError, MalformedProfileError
+
+AES_BUFFER_SIZE = 64 * 1024
 
 
 # Consists of mostly helper methods.
@@ -213,7 +216,7 @@ class QuizzrTPM:
 
     def get_file_blob(self, blob_path: str):
         """
-        Retrieve a file from Firebase Storage and store it in-memory.
+        Retrieve an encrypted file from Firebase Storage and store it in-memory decrypted.
 
         :param blob_path: The canonical blob name
         :return: An in-memory bytes buffer handler for the file
@@ -222,7 +225,10 @@ class QuizzrTPM:
         self._debug_variable("blob_name", blob_name)
         blob = self.bucket.blob(blob_name)
         file_bytes = blob.download_as_bytes()
-        fh = io.BytesIO(file_bytes)
+        fh_aes = io.BytesIO(file_bytes)
+        fh = io.BytesIO()
+        pyAesCrypt.decryptStream(fh_aes, fh, os.environ["DF_SERVER_AUDIO_PSWD"], AES_BUFFER_SIZE, len(fh_aes.getvalue()))
+        fh.seek(0)  # Reset BytesIO to beginning
         return fh
 
     def delete_file_blob(self, blob_path: str):
@@ -436,7 +442,7 @@ class QuizzrTPM:
 
     def upload_many(self, file_paths: List[str], subdir: str) -> Dict[str, str]:
         """
-        Upload multiple audio files to Firebase Cloud Storage, located at ``<BLOB_ROOT>/<subdir>/``.
+        Upload multiple encrypted audio files to Firebase Cloud Storage, located at ``<BLOB_ROOT>/<subdir>/``.
 
         :param file_paths: The paths of the files to upload
         :param subdir: The subdirectory to put the files in
@@ -449,10 +455,18 @@ class QuizzrTPM:
         upload_count = 0
         for file_path in file_paths:
             file_name = os.path.basename(file_path)
+            file_path_aes = file_path + ".aes"
+            # with open(file_path, "rb") as f:
+            #     in_bytesio = io.BytesIO(f.read())
+            # out_bytesio = io.BytesIO()
+            pyAesCrypt.encryptFile(file_path, file_path_aes, os.environ["DF_SERVER_AUDIO_PSWD"], AES_BUFFER_SIZE)
+            # pyAesCrypt.encryptStream(in_bytesio, out_bytesio, os.environ["DF_SERVER_AUDIO_PSWD"], AES_BUFFER_SIZE)
             blob_name = str(uuid4())
             blob_path = self.get_blob_path(blob_name, subdir)
             blob = self.bucket.blob(blob_path)
-            blob.upload_from_filename(file_path)
+            blob.upload_from_filename(file_path_aes)
+            # out_bytesio.seek(0)  # Reset BytesIO to beginning
+            # blob.upload_from_file(out_bytesio)
             file2blob[file_name] = blob_name
             self.logger.debug(f"{upload_count}/{len(file_paths)}")
             upload_count += 1
