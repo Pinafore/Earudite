@@ -764,8 +764,6 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         # TODO: MAKE THIS OPERATION SECURE! REQUIRE AUTHENTICATION FROM THE USER WHO IS DELETING THE RECORDING!
         audio_doc = qtpm.audio.find_one({"_id": audio_id})
-        # Decrease the total recording score of a user who deleted an audio file
-        qtpm.users.update_one({"_id": audio_doc["userId"]}, {"$inc": {"recordingScore": -audio_doc["recordingScore"]}})
         # Delete the other audio segments in the batch if the "batch" flag is set and the audio document contains a
         # batchUUID.
         if _query_flag("batch") and "batchUUID" in audio_doc:
@@ -792,6 +790,9 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                     [audio_doc["_id"]],
                     log_msg=True
                 )
+
+        # Decrease the total recording score of a user who deleted an audio file
+        qtpm.users.update_one({"_id": audio_doc["userId"]}, {"$inc": {"recordingScore": -audio_doc["recordingScore"]}})
 
         return "", HTTPStatus.OK
 
