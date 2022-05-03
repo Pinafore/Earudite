@@ -1,4 +1,5 @@
 import argparse
+import io
 import json
 import logging
 import logging.handlers
@@ -31,6 +32,7 @@ import bson.json_util
 from flask import Flask, request, render_template, send_file, make_response
 from flask_cors import CORS
 from openapi_schema_validator import validate
+from pydub import AudioSegment
 from pymongo import UpdateOne
 from werkzeug.exceptions import abort
 
@@ -675,8 +677,23 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         return {"answer": correct_answer}
 
     @app.get("/audio/<path:blob_path>")
+    def get_audio_backwards_compatible(blob_path):
+        """
+        Backwards-compatibility function. If ``blob_path`` contains slashes, use old interface. Otherwise, use new
+        interface.
+
+        :param blob_path: The path to a Firebase Cloud Storage object (or an audio ID)
+        :return: A response containing the bytes of the audio file
+        """
+        if "/" in blob_path:
+            return retrieve_audio_file(blob_path)
+        else:
+            return get_audio(blob_path)
+
     def retrieve_audio_file(blob_path):
         """
+        OUTDATED!
+
         Retrieve a file from Firebase Storage. The blob path is usually in the format ``<recType>/<_id>``.
 
         :param blob_path: The path to a Firebase Cloud Storage object
@@ -692,6 +709,47 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 [blob_path],
                 log_msg=True
             )
+        return send_file(file, mimetype="audio/wav")
+
+    def get_audio(audio_id):
+        """
+        Retrieve an audio file from Firebase Storage.
+
+        :param audio_id: The ID of the audio file to retrieve
+        :return: A response containing the bytes of the audio file
+        """
+        audio_doc = qtpm.audio.find_one({"_id": audio_id})
+
+        if _query_flag("batch") and "batchUUID" in audio_doc:
+            files = []
+            cursor = qtpm.audio.find(
+                {"batchUUID": audio_doc["batchUUID"]},
+                sort=[("sentenceId", pymongo.ASCENDING), ("tokenizationId", pymongo.ASCENDING)]
+            )
+            for doc in cursor:
+                try:
+                    files.append(qtpm.get_file_blob("/".join([audio_doc["recType"], doc["_id"]])))
+                except google.api_core.exceptions.NotFound:
+                    return _make_err_response(
+                        "Audio not found",
+                        "not_found",
+                        HTTPStatus.NOT_FOUND,
+                        [doc["_id"]],
+                        log_msg=True
+                    )
+            file = _merge_audio(files)
+        else:
+            try:
+                file = qtpm.get_file_blob("/".join([audio_doc["recType"], audio_id]))
+            except google.api_core.exceptions.NotFound:
+                return _make_err_response(
+                    "Audio not found",
+                    "not_found",
+                    HTTPStatus.NOT_FOUND,
+                    [audio_id],
+                    log_msg=True
+                )
+
         return send_file(file, mimetype="audio/wav")
 
     @app.delete("/audio/<audio_id>")
@@ -2295,6 +2353,19 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
             selected_final.append(rec_final)
         return selected_final
+
+    def _merge_audio(files: List[io.BytesIO]):
+        """
+        PRECONDITION: All file cursors are at the beginning.
+
+        :param files:
+        :return:
+        """
+        in_segments = [AudioSegment(file.read()) for file in files]
+        out_segment = in_segments.pop(0)
+        for in_segment in in_segments:
+            out_segment += in_segment
+        return out_segment.export(io.BytesIO(), format='wav')
 
     return app
 
