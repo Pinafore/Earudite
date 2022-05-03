@@ -1,4 +1,5 @@
 import string
+from datetime import datetime, timedelta
 from typing import Tuple, Iterable
 
 from gentle import transcription
@@ -137,3 +138,50 @@ def realign_alignment(orig_alignment: transcription.Transcription) -> transcript
         prev_word = word
 
     return transcription.Transcription(transcript, realigned_words)
+
+
+def offset_cues(vtt_input, seconds):
+    """
+    Source: https://www.webucator.com/article/fixing-webvtt-times-with-python/
+    Fixes times in WebVTT by adding the passed-in seconds to all the timestamps.
+
+        Args:
+            vtt_input (str): The text of the WebVTT
+            seconds (float): The seconds to add. Use negative number to subtract.
+        """
+    td = timedelta(seconds=seconds)
+    dt_format = "%M:%S.%f"
+    vtt_output = ""
+
+    for line in vtt_input.splitlines():
+
+        if "-->" not in line:
+            # This line doesn't have times. Just append it as is.
+            vtt_output += line + "\n"
+            continue
+
+        start, end = line.split(" --> ")
+        start = start.strip()
+        end = end.strip()
+
+        start_time_fixed = datetime.strptime(start, dt_format) + td
+        end_time_fixed = datetime.strptime(end, dt_format) + td
+
+        start_time = start_time_fixed.strftime(dt_format)
+        end_time = end_time_fixed.strftime(dt_format)
+
+        vtt_output += f"{start_time} --> {end_time}\n"
+
+    return vtt_output
+
+
+def merge_vtts(vtts, durations):
+    vtt_line_sets = [vtt.splitlines() for vtt in vtts]
+    header = vtts[0].splitlines()[0:2]
+    vtt_bodies = []
+    cumulative_duration = 0
+    for vtt_lines, duration in zip(vtt_line_sets, durations):
+        vtt_bodies.append(offset_cues("\n".join(vtt_lines[2:]), cumulative_duration))
+        cumulative_duration += duration
+
+    return "\n".join([*header, *vtt_bodies]).strip()

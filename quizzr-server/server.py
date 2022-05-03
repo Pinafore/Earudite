@@ -22,6 +22,7 @@ from typing import List, Union, Tuple, Dict, Any, Optional
 import google.api_core.exceptions
 import jsonschema.exceptions
 import pymongo.errors
+import vtt_conversion
 import werkzeug.datastructures
 from firebase_admin import auth
 from flask_limiter import Limiter
@@ -1437,10 +1438,22 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         :param audio_id: The ID of the document in the Audio collection
         :return: A response containing the VTT as an octet stream
         """
-        audio_doc = qtpm.audio.find_one({"_id": audio_id}, {"vtt": 1})
+        audio_doc = qtpm.audio.find_one({"_id": audio_id}, {"vtt": 1, "batchUUID": 1})
         if audio_doc is None or audio_doc.get("vtt") is None:
             abort(HTTPStatus.NOT_FOUND)
-        response = make_response(bytes(audio_doc["vtt"], "utf-8"))
+
+        if _query_flag("batch") and "batchUUID" in audio_doc:
+            cursor = qtpm.audio.find({"batchUUID": audio_doc["batchUUID"]}, {"vtt": 1, "duration": 1})
+            vtts = []
+            durations = []
+            for doc in cursor:
+                vtts.append(doc["vtt"])
+                durations.append(doc["duration"])
+            res = vtt_conversion.merge_vtts(vtts, durations)
+        else:
+            res = audio_doc["vtt"]
+
+        response = make_response(bytes(res, "utf-8"))
         response.headers["Content-Type"] = "application/octet-stream"
         return response
 
