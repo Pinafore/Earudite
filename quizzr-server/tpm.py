@@ -595,13 +595,14 @@ class QuizzrTPM:
         config = visibility_configs[visibility]
         return self.database.get_collection(config["collection"]).find_one(user_id, config["projection"])
 
-    def create_profile(self, user_id: str, pfp: List[str], username: str):
+    def create_profile(self, user_id: str, pfp: List[str], username: str, consented: bool):
         """
         Create a profile stub from the given parameters.
 
         :param user_id: The internal ID of a user, defined by the _id field of a profile document
         :param pfp: Freeform array for the profile. Potential values can be for color, the types of images to use, etc.
         :param username: The public name of the user. Must not conflict with any existing usernames
+        :param consented: Whether the user has consented to taking part in this platform
         :return: A pymongo InsertOneResult object. See documentation for further details
         :raise UserExistsError: When there is an existing user profile with the given username
         :raise pymongo.errors.DuplicateKeyError: When a user of the given ID already exists
@@ -624,7 +625,8 @@ class QuizzrTPM:
             "playTime": 0,
             "creationDate": datetime.now().isoformat(),
             "recVotes": [],
-            "recordingScore": 0
+            "recordingScore": 0,
+            "consented": consented
         }
         return self.users.insert_one(profile)
 

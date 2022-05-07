@@ -1589,7 +1589,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                     )
 
             try:
-                result = qtpm.create_profile(user_id, args["pfp"], args["username"])
+                result = qtpm.create_profile(user_id, args["pfp"], args["username"], args["consented"])
             except pymongo.errors.DuplicateKeyError:
                 return _make_err_response(
                     "User already registered",
