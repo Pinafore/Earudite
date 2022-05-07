@@ -679,7 +679,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         return {"answer": correct_answer}
 
-    @app.get("/audio/<path:blob_path>")
+    @app.get("/hls/audio/<path:blob_path>")
     def get_audio_backwards_compatible(blob_path):
         """
         Backwards-compatibility function. If ``blob_path`` contains slashes, use old interface. Otherwise, use new
@@ -1827,7 +1827,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             )
         return {"results": questions}
 
-    @app.route("/question/unrec", methods=["GET", "POST"])
+    @app.get("/question/unrec")
     def unrec_question_resource():
         """
         Resource for unrecorded questions
@@ -1836,13 +1836,9 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         POST: Upload a batch of unrecorded questions.
         """
-        if request.method == "GET":
-            difficulty = request.args.get("difficultyType")
-            batch_size = request.args.get("batchSize")
-            return pick_recording_question(int(difficulty) if difficulty else difficulty, int(batch_size or 1))
-        elif request.method == "POST":
-            arguments_batch = request.get_json()
-            return upload_questions(arguments_batch)
+        difficulty = request.args.get("difficultyType")
+        batch_size = request.args.get("batchSize")
+        return pick_recording_question(int(difficulty) if difficulty else difficulty, int(batch_size or 1))
 
     def pick_recording_question(difficulty: int, batch_size: int):
         """
@@ -1945,13 +1941,14 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             results.append(result_doc)
         return {"results": results, "errors": errors}
 
-    def upload_questions(arguments_batch: Dict[str, List[dict]]) -> Tuple[Union[str, dict], int]:
+    @app.post("/question/upload")
+    def upload_questions() -> Tuple[Union[str, dict], int]:
         """
         Upload a batch of unrecorded questions.
 
-        :param arguments_batch: A dictionary containing the list of "arguments"
         :return: A dictionary containing a "msg" stating that the upload was successful if nothing went wrong
         """
+        arguments_batch = request.get_json()
         if arguments_batch is None:
             return _make_err_response(
                 "No arguments specified",
