@@ -255,7 +255,8 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         Additionally, update the recording history of the associated questions and users.
         """
         if request.method == "GET":
-            return get_unprocessed_audio()
+            # return get_unprocessed_audio()
+            abort(HTTPStatus.NOT_FOUND)
         elif request.method == "POST":
             decoded = _verify_id_token()
             user_id = decoded['uid']
@@ -295,8 +296,9 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             return pre_screen(recordings, rec_types, user_id, qb_ids, sentence_ids, diarization_metadata_list,
                               expected_answers, transcripts, correct_flags)
         elif request.method == "PATCH":
-            arguments_batch = request.get_json()
-            return handle_processing_results(arguments_batch)
+            abort(HTTPStatus.NOT_FOUND)
+            # arguments_batch = request.get_json()
+            # return handle_processing_results(arguments_batch)
 
     def get_unprocessed_audio():
         """
@@ -763,8 +765,13 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         :return:
         """
 
-        # TODO: MAKE THIS OPERATION SECURE! REQUIRE AUTHENTICATION FROM THE USER WHO IS DELETING THE RECORDING!
+        decoded = _verify_id_token()
+        user_id = decoded["uid"]
+
         audio_doc = qtpm.audio.find_one({"_id": audio_id})
+        profile = qtpm.users.find_one({"_id": user_id})
+        if profile["permLevel"] != "admin":
+            abort(HTTPStatus.UNAUTHORIZED)
         # Delete the other audio segments in the batch if the "batch" flag is set and the audio document contains a
         # batchUUID.
         if _query_flag("batch") and "batchUUID" in audio_doc:
@@ -1669,6 +1676,13 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             visibility = "basic" if _query_flag("basic") else "public"
             return qtpm.get_profile(other_user_id, visibility)
         elif request.method == "PATCH":
+            decoded = _verify_id_token()
+            user_id = decoded["uid"]
+            user_profile = qtpm.users.find_one({"_id": user_id})
+            # if user_id != other_user_id and user_profile["permLevel"] != "admin":
+            if user_profile["permLevel"] != "admin":
+                abort(HTTPStatus.UNAUTHORIZED)
+
             update_args = request.get_json()
             result = qtpm.modify_profile(other_user_id, update_args)
             if result.matched_count == 1:
@@ -1682,6 +1696,13 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 True
             )
         elif request.method == "DELETE":
+            decoded = _verify_id_token()
+            user_id = decoded["uid"]
+            user_profile = qtpm.users.find_one({"_id": user_id})
+            # if user_id != other_user_id and user_profile["permLevel"] != "admin":
+            if user_profile["permLevel"] != "admin":
+                abort(HTTPStatus.UNAUTHORIZED)
+
             result = qtpm.delete_profile(other_user_id)
             if result.deleted_count == 1:
                 app.logger.info("User profile successfully deleted")
