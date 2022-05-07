@@ -37,6 +37,7 @@ from pydub import AudioSegment
 from pymongo import UpdateOne
 from werkzeug.exceptions import abort
 
+from ratelimiter import RateLimiter
 import rec_processing
 import sv_util
 from sv_api import QuizzrAPISpec
@@ -131,7 +132,10 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         "DEFAULT_LEADERBOARD_SIZE": 10,
         "MAX_USERNAME_LENGTH": 16,
         "USERNAME_CHAR_SET": string.ascii_letters + string.digits,
-        "DEFAULT_RATE_LIMITS": []
+        "DEFAULT_RATE_LIMITS": [],
+        "ENDPOINT_RATE_LIMITS": {
+            "/audio POST": {"maxCalls": 1, "unitTime": 20}
+        }
     }
 
     config_dir = os.path.join(app.instance_path, "config")
@@ -235,6 +239,12 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
     else:
         app.logger.info("No default rate limits defined. Skipping rate limiter initialization")
 
+    # Rate limiter for multiple events on a per-user basis. Events are recorded explicitly in code.
+    rate_limiter = RateLimiter()
+    user_rate_limits = app.config["ENDPOINT_RATE_LIMITS"]
+    for event, parameters in user_rate_limits.items():
+        rate_limiter.create_event(event, max_calls=parameters["maxCalls"], unit_time=parameters["unitTime"])
+
     secret_keys = {}
     prescreen_statuses = []
     pprinter = pprint.PrettyPrinter()
@@ -260,6 +270,8 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         elif request.method == "POST":
             decoded = _verify_id_token()
             user_id = decoded['uid']
+            if not rate_limiter.valid_call("/audio POST", user_id):
+                abort(HTTPStatus.TOO_MANY_REQUESTS)
             _block_banned_users(user_id)
 
             recordings = request.files.getlist("audio")
