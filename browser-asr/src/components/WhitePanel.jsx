@@ -22,10 +22,10 @@ import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
 // Sidenav
 import DashboardIcon from '@material-ui/icons/Dashboard';
 import AccountCircleIcon from '@material-ui/icons/AccountCircle';
-import OfflineBoltIcon from '@material-ui/icons/OfflineBolt';
+import SportsEsportsIcon from '@material-ui/icons/SportsEsports';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
-import StorefrontIcon from '@material-ui/icons/Storefront';
+import MicIcon from '@material-ui/icons/Mic';
 
 // // Currency
 // import EnergyIcon from '../assets/energy.png';
@@ -169,8 +169,8 @@ function Sidenav(props) {
             <div class="sidenav-tabs-wrapper">
                 <SidenavItem label="Profile" icon={<AccountCircleIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(1); document.location.hash = "profile";}} textColor={MainColor}/>
                 <SidenavItem label="Dashboard" icon={<DashboardIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(2); document.location.hash = "dashboard";}} textColor={MainColor}/>
-                <SidenavItem label="Play" icon={<OfflineBoltIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(3); document.location.hash = "play";}} textColor={MainColor}/>
-                <SidenavItem label="Record" icon={<StorefrontIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(4); document.location.hash = "shop";}} textColor={MainColor}/>
+                <SidenavItem label="Play" icon={<SportsEsportsIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(3); document.location.hash = "play";}} textColor={MainColor}/>
+                <SidenavItem label="Record" icon={<MicIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(4); document.location.hash = "shop";}} textColor={MainColor}/>
                 <SidenavItem label="Leaderboards" icon={<EmojiEventsIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(5); document.location.hash = "leaderboards";}} textColor={MainColor}/>
                 <SidenavItem label="Logout" icon={<ExitToAppIcon style={{color: LogoutColor}}/>} textColor={LogoutColor} setScreen={() => firebase.auth().signOut()}/>
             </div>
