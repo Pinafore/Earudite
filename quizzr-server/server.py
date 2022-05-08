@@ -272,7 +272,9 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             user_id = decoded['uid']
             if not rate_limiter.valid_call("/audio POST", user_id):
                 abort(HTTPStatus.TOO_MANY_REQUESTS)
-            _block_banned_users(user_id)
+
+            # Abort if the user is banned or has not consented.
+            _block_users(user_id)
 
             recordings = request.files.getlist("audio")
             qb_ids = request.form.getlist("qb_id")
@@ -780,7 +782,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         decoded = _verify_id_token()
         user_id = decoded["uid"]
-        _block_banned_users(user_id)
+        _block_users(user_id)
 
         audio_doc = qtpm.audio.find_one({"_id": audio_id})
         profile = qtpm.users.find_one({"_id": user_id})
@@ -1485,7 +1487,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         :return: A dictionary containing the "results"
         """
-        _block_banned_users()
+        _block_users()
         arg_size = request.args.get("size")
         size = arg_size or app.config["DEFAULT_LEADERBOARD_SIZE"]
         if size > app.config["MAX_LEADERBOARD_SIZE"]:
@@ -1512,7 +1514,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         :return: A dictionary containing the "results"
         """
-        _block_banned_users()
+        _block_users()
         visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboard"]
         arg_size = request.args.get("size")
         size = arg_size or app.config["DEFAULT_LEADERBOARD_SIZE"]
@@ -1568,16 +1570,23 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         decoded = _verify_id_token()
         user_id = decoded["uid"]
 
-        if request.method != "POST":
-            _block_banned_users(user_id)
+        if request.method not in ["POST", "GET"]:
+            _block_users(user_id)
 
         if request.method == "GET":
             result = qtpm.get_profile(user_id, "private")
             if result is None:
                 app.logger.error(f"User with ID '{user_id}' does not have a profile. Aborting")
                 abort(HTTPStatus.NOT_FOUND)
+            if not result.get("consented"):
+                app.logger.error(f"User with ID '{user_id}' has not consented. Aborting")
+                abort(HTTPStatus.NOT_FOUND)
+            if result["permLevel"] == "banned":
+                abort(HTTPStatus.FORBIDDEN)
             return result
         elif request.method == "POST":
+            if qtpm.users.find_one({"_id": user_id}) is not None:
+                _block_users(user_id, no_consent=False)
             args = request.get_json()
             _debug_variable("args", args)
             if len(args["username"]) == 0:
@@ -1689,8 +1698,8 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         """
         decoded = _verify_id_token()
         user_id = decoded["uid"]
-        user_profile = qtpm.users.find_one({"_id": user_id}, {"permLevel": 1})
-        if user_profile["permLevel"] == "banned":
+        user_profile = qtpm.users.find_one({"_id": user_id}, {"permLevel": 1, "consented": 1})
+        if user_profile["permLevel"] == "banned" or not user_profile.get("consented"):
             abort(HTTPStatus.FORBIDDEN)
 
         _debug_variable("username", username)
@@ -1857,7 +1866,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         POST: Upload a batch of unrecorded questions.
         """
-        _block_banned_users()
+        _block_users()
         difficulty = request.args.get("difficultyType")
         batch_size = request.args.get("batchSize")
         return pick_recording_question(int(difficulty) if difficulty else difficulty, int(batch_size or 1))
@@ -2421,19 +2430,21 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             out_segment += in_segment
         return out_segment.export(io.BytesIO(), format='wav')
 
-    def _block_banned_users(user_id=None):
+    def _block_users(user_id=None, banned=True, no_consent=True):
         """
-        Abort if the user is banned or if they are not authenticated. Only callable in the context of a Flask view
-        function.
+        Abort if the user is banned, if they have not consented, or if they are not authenticated. Only callable in the
+        context of a Flask view function.
 
+        :param banned: If True, block if the user is banned
+        :param no_consent: If True, block if the user has not consented.
         :param user_id: (Optional) The user ID if it has already been retrieved.
         :return:
         """
         if user_id is None:
             decoded = _verify_id_token()
             user_id = decoded["uid"]
-        profile = qtpm.users.find_one({"_id": user_id}, {"permLevel": 1})
-        if profile["permLevel"] == "banned":
+        profile = qtpm.users.find_one({"_id": user_id}, {"permLevel": 1, "consented": 1})
+        if (banned and profile["permLevel"] == "banned") or (no_consent and not profile.get("consented")):
             abort(HTTPStatus.FORBIDDEN)
 
     return app
