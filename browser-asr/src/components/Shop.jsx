@@ -1,5 +1,5 @@
 import "../styles/Shop.css";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAlert } from 'react-alert';
 // import CoinIcon from '../assets/coin_transparent.png';
 import 'react-tippy/dist/tippy.css';
@@ -100,6 +100,7 @@ function Shop() {
     }
 
     function rerollTranscripts() {
+        const prevScreen = (' ' + shopScreen).slice(1);;
         setShopScreen("loading");
         let transcriptsArray = [[],[],[]];
         let requestsArray = [];
@@ -124,13 +125,17 @@ function Shop() {
         axios.all(requestsArray)
             .then(() => {
                 setTranscripts(transcriptsArray);
-                setShopScreen("selectingtranscript");
+                setShopScreen(prevScreen);
             })
             .catch(function (error) {
                 alert.error("Rerolling failed");
-                setShopScreen("selectingtranscript")
+                setShopScreen(prevScreen);
             });
     }
+
+    useEffect(() => {
+        rerollTranscripts();
+    }, []);
 
     function submitAudios() {
         let b = true;

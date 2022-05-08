@@ -328,38 +328,6 @@ function BigWhitePanel() {
         return () => unregisterAuthObserver(); // Make sure we un-register Firebase observers when the component unmounts.
     }, [alert, setAuthtoken, setProfile, setScreen, urls]);
 
-    // getting transcripts
-    useEffect(() => {
-        let transcriptsArray = [[],[],[]];
-        let requestsArray = [];
-        for(let i = 0; i < 4; i++) {
-            requestsArray.push(axios.get(urls['dataflow'] + '/question/unrec?difficultyType=0')
-                .then(function (response) {
-                    transcriptsArray[0].push(response['data']['results'][0]);
-                }));
-        }
-        for(let i = 0; i < 4; i++) {
-            requestsArray.push(axios.get(urls['dataflow'] + '/question/unrec?difficultyType=1')
-                .then(function (response) {
-                    transcriptsArray[1].push(response['data']['results'][0]);
-                }));
-        }
-        for(let i = 0; i < 4; i++) {
-            requestsArray.push(axios.get(urls['dataflow'] + '/question/unrec?difficultyType=2')
-                .then(function (response) {
-                    transcriptsArray[2].push(response['data']['results'][0]);
-                }));
-        }
-        axios.all(requestsArray)
-            .then(() => {
-                setTranscripts(transcriptsArray);
-            })
-            .catch(function (error) {
-                alert.error("Getting transcripts failed");
-            });
-            // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     function isChrome() {
         var isChromium = window.chrome;
         var winNav = window.navigator;
