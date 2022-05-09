@@ -597,7 +597,8 @@ class QuizzrTPM:
 
     def create_profile(self, user_id: str, pfp: List[str], username: str, consented: bool):
         """
-        Create a profile stub from the given parameters.
+        Create a profile stub from the given parameters and overwrite the existing profile corresponding to the given
+        ID.
 
         :param user_id: The internal ID of a user, defined by the _id field of a profile document
         :param pfp: Freeform array for the profile. Potential values can be for color, the types of images to use, etc.
@@ -607,7 +608,7 @@ class QuizzrTPM:
         :raise UserExistsError: When there is an existing user profile with the given username
         :raise pymongo.errors.DuplicateKeyError: When a user of the given ID already exists
         """
-        if self.users.find_one({"username": username}) is not None:
+        if self.users.find_one({"username": username, "_id": {"$ne": user_id}}) is not None:
             raise UsernameTakenError(username)
         profile = {
             "_id": user_id,
@@ -628,7 +629,7 @@ class QuizzrTPM:
             "recordingScore": 0,
             "consented": consented
         }
-        return self.users.insert_one(profile)
+        return self.users.replace_one({"_id": user_id}, profile, upsert=True)
 
     def modify_profile(self, user_id: str, update_args: Dict[str, Any]):
         """
