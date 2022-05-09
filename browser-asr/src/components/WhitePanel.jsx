@@ -288,8 +288,9 @@ function BigWhitePanel() {
             } else if (windowhash === "tutorial") {
                 setScreen(8);
             } else {
-                 setScreen(2)
-                //setScreen(6); // in game
+                setScreen(2);
+                // setScreen(6); // in game
+                // setScreen(7);
             }
             
         }
