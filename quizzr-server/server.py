@@ -233,17 +233,19 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
     rate_limits = app.config["DEFAULT_RATE_LIMITS"]
     if rate_limits:
-        app.logger.info("Initializing rate limiter...")
+        app.logger.info("Initializing global rate limiter...")
         limiter = Limiter(app, key_func=get_remote_address, default_limits=rate_limits)
-        app.logger.info("Finished initializing rate limiter")
+        app.logger.info("Finished initializing global rate limiter")
     else:
-        app.logger.info("No default rate limits defined. Skipping rate limiter initialization")
+        app.logger.info("No default rate limits defined. Skipping global rate limiter initialization")
 
     # Rate limiter for multiple events on a per-user basis. Events are recorded explicitly in code.
+    app.logger.info("Initializing per-user rate limiter...")
     rate_limiter = RateLimiter()
     user_rate_limits = app.config["ENDPOINT_RATE_LIMITS"]
     for event, parameters in user_rate_limits.items():
         rate_limiter.create_event(event, max_calls=parameters["maxCalls"], unit_time=parameters["unitTime"])
+    app.logger.info("Finished initializing per-user rate limiter")
 
     secret_keys = {}
     prescreen_statuses = []
