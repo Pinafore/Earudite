@@ -22,6 +22,8 @@ from typing import List, Union, Tuple, Dict, Any, Optional
 import google.api_core.exceptions
 import jsonschema.exceptions
 import pymongo.errors
+from firebase_admin.auth import UserNotFoundError
+
 import vtt_conversion
 import werkzeug.datastructures
 from firebase_admin import auth
@@ -38,6 +40,7 @@ from pymongo import UpdateOne
 from werkzeug.exceptions import abort
 
 from ratelimiter import RateLimiter
+from mail_lib import Mailer
 import rec_processing
 import sv_util
 from sv_api import QuizzrAPISpec
@@ -135,6 +138,16 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         "DEFAULT_RATE_LIMITS": [],
         "ENDPOINT_RATE_LIMITS": {
             "/audio POST": {"maxCalls": 1, "unitTime": 20}
+        },
+        "REGISTRATION_EMAIL": {
+            "enabled": True,
+            "subject": None,
+            "textBodyPath": None,
+            "htmlBodyPath": None,
+            "sender": {
+                "display": None,
+                "email": None
+            }
         }
     }
 
@@ -231,6 +244,73 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
     app.logger.debug(f"qwPid = {app_attributes['qwPid']}")
     app.logger.info("Started pre-screening program")
 
+    # System to send email addresses to new users.
+    def _initialize_mailer():
+        # Upfront error handling
+        registration_email = app.config["REGISTRATION_EMAIL"]
+        if not registration_email["subject"]:
+            app.logger.error("Could not start mailer: 'subject' not configured")
+            return
+
+        if not registration_email["sender"]["display"]:
+            app.logger.error("Could not start mailer: Sender display name not configured")
+            return
+
+        if not registration_email["sender"]["email"]:
+            app.logger.error("Could not start mailer: Sender email address not configured")
+            return
+
+        # Cache registration email bodies
+        app.logger.info("Caching registration email bodies...")
+        text_email_path = registration_email["textBodyPath"]
+        if text_email_path and os.path.exists(text_email_path):
+            with open(text_email_path) as f:
+                registration_email["textBody"] = f.read()
+        else:
+            registration_email["textBody"] = None
+
+        html_email_path = registration_email["htmlBodyPath"]
+        if html_email_path and os.path.exists(html_email_path):
+            with open(html_email_path) as f:
+                registration_email["htmlBody"] = f.read()
+        else:
+            registration_email["htmlBody"] = None
+
+        if not (registration_email["textBody"] or registration_email["htmlBody"]):
+            app.logger.error("Could not start mailer: Failed to load email body. This could be due to neither the path"
+                             " to the HTML body nor the text body being properly defined.")
+            return
+
+        app.logger.info("Registration email bodies cached")
+
+        # Initialize the mailer
+        app.logger.info("Initializing mailer...")
+        email_cred_path = os.path.join(secret_dir, "email_credentials.json")
+
+        try:
+            with open(email_cred_path) as f:
+                email_cred = json.load(f)
+        except FileNotFoundError as e:
+            app.logger.error(f"Could not start mailer: {e}")
+            return
+
+        mailer = Mailer(
+            app.logger.getChild("mailer"),
+            (registration_email["sender"]["display"], registration_email["sender"]["email"]),
+            "smtp.gmail.com",
+            587,
+            [email_cred]
+        )
+        app.logger.info("Finished initializing mailer")
+        return mailer
+
+    mailer = None
+    if app.config["REGISTRATION_EMAIL"]["enabled"]:
+        mailer = _initialize_mailer()
+    else:
+        app.logger.info("Mailer not enabled. Skipping mailer initialization")
+
+    # Global rate limiter
     rate_limits = app.config["DEFAULT_RATE_LIMITS"]
     if rate_limits:
         app.logger.info("Initializing global rate limiter...")
@@ -1636,6 +1716,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                     [str(e)],
                     True
                 )
+            _send_registration_email(user_id)
             if result:
                 app.logger.info("User successfully created")
                 return '', HTTPStatus.CREATED
@@ -2448,6 +2529,19 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         profile = qtpm.users.find_one({"_id": user_id}, {"permLevel": 1, "consented": 1})
         if (banned and profile["permLevel"] == "banned") or (no_consent and not profile.get("consented")):
             abort(HTTPStatus.FORBIDDEN)
+
+    def _send_registration_email(user_id):
+        if mailer is None:
+            return
+        app.logger.info("Sending registration email...")
+        try:
+            user = auth.get_user(user_id)
+        except UserNotFoundError:
+            app.logger.error(f"Failed to send email: No such user: {user_id}")
+            return
+        mailer.sendMail(to=user.email, subject=app.config["REGISTRATION_EMAIL"]["subject"],
+                        textbody=app.config["REGISTRATION_EMAIL"]["textBody"],
+                        htmlbody=app.config["REGISTRATION_EMAIL"]["htmlBody"])
 
     return app
 
