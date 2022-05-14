@@ -5,6 +5,7 @@ import random
 import json
 import recordings_database as rd
 import os
+import copy
 # from inference.classify import classify_and_upload
 
 # os.environ.get("HLS_HANDSHAKE") = "Lt`cw%Y9sg*bJ_~KZ#;|rbfI)nx[r5"
@@ -55,11 +56,16 @@ class Game:
             ).json()["results"]
             self.questions = []  # id, qb_id, time length
             for question in raw_questions:
+                final_vtt = requests.get(
+                    os.environ.get("BACKEND_URL") + "/hls/vtt/" + question["audio"][0]["id"] + "?batch",
+                    headers={"Authorization": self.auth_token},
+                )
+
                 self.questions.append(
                     [
                         question["audio"][0]["id"],
                         question["qb_id"],
-                        get_final_time(question["audio"][0]["vtt"])
+                        get_final_time(final_vtt.text)
                         + self.post_buzz_time,
                     ]
                 )
@@ -462,6 +468,20 @@ class Game:
             {"id": i[0], "qb_id": i[1]} for i in self.questions
         ]
 
+        # POST SCORES TO LEADERBOARDS
+        pointsObj = {}
+        if self.teams == 0:
+            pointsObj["ratings"] = self.points
+        else:
+            pointsObj["ratings"] = copy.deepcopy(self.points[0])
+            pointsObj["ratings"].update(self.points[1])
+        requests.post(
+            os.environ.get("BACKEND_URL") + "/game/ratings",
+            json=pointsObj
+        )
+        
+
+        # POST RECORDING
         recording_code = rd.database.add_recording(self.recording_json)
         requests.post(
             os.environ.get("BACKEND_URL") + "/game",

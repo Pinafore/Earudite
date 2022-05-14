@@ -56,7 +56,7 @@ function Topic(props) {
 
 
             <div>
-                {props.rank === -1 &&
+                {props.rank <= 0 &&
                     <Tooltip
                         // options
                         title=">200"
@@ -67,7 +67,7 @@ function Topic(props) {
                         Unranked
                     </Tooltip>
                 }
-                {props.rank !== -1 &&
+                {props.rank > 0 &&
                     <Tooltip
                         // options
                         title="Your rank"
@@ -112,37 +112,86 @@ function Leaderboards() {
     screenRef.current = screen;
 
     function updateLeaderboards() {
+        const TO = setTimeout(() => {
+            if (screenRef.current === "loading") {
+                setScreen("home");
+                alert.error("Failed to get leaderboards");
+            }
+        }, 5000);
+
         if(topic === "all") {
             setScreen("loading");
-            socket.emit("leaderboards", {
-                auth: authtoken,
-            });
+            axios.get(urls['dataflow'] + '/leaderboard')
+                .then(function (response) {
+                    setLeaderboards(response.data.results);
+                    setScreen("home");
+                    clearTimeout(TO);
+
+                    let rank1 = -1;
+                    for(let i = 0; i < response.data.results.length; i++) {
+                        if(response.data.results[i]._id === profile._id) {
+                            rank1 = i;
+                        }
+                    }
+                    setRank(rank1+1);
+                });
         } else if(topic === "recording") {
             setScreen("loading");
             axios.get(urls['dataflow'] + '/leaderboard/audio')
                 .then(function (response) {
                     setRecordingLeaderboards(response.data.results);
                     setScreen("home");
+                    clearTimeout(TO);
 
-                    let rank = -1;
+                    let rank1 = -1;
                     for(let i = 0; i < response.data.results.length; i++) {
                         if(response.data.results[i]._id === profile._id) {
-                            rank = i;
+                            rank1 = i;
                         }
                     }
-                    setRecordingRank(rank+1);
+                    setRecordingRank(rank1+1);
                 });
         }
-        setTimeout(() => {
+    }
+
+    useEffect(() => {
+        const TO = setTimeout(() => {
             if (screenRef.current === "loading") {
                 setScreen("home");
                 alert.error("Failed to get leaderboards");
             }
         }, 5000);
-    }
 
-    useEffect(() => {
-        updateLeaderboards();
+        setScreen("loading");
+        const gameplayLeaderboard = axios.get(urls['dataflow'] + '/leaderboard')
+            .then(function (response) {
+                setLeaderboards(response.data.results);
+
+                let rank1 = -1;
+                for(let i = 0; i < response.data.results.length; i++) {
+                    if(response.data.results[i]._id === profile._id) {
+                        rank1 = i;
+                    }
+                }
+                setRank(rank1+1);
+            });
+        const audioLeaderboard = axios.get(urls['dataflow'] + '/leaderboard/audio')
+            .then(function (response) {
+                setRecordingLeaderboards(response.data.results);
+
+                let rank1 = -1;
+                for(let i = 0; i < response.data.results.length; i++) {
+                    if(response.data.results[i]._id === profile._id) {
+                        rank1 = i;
+                    }
+                }
+                setRecordingRank(rank1+1);
+            });
+
+        Promise.all([gameplayLeaderboard, audioLeaderboard]).then(() => {
+            setScreen("home");
+            clearTimeout(TO);
+        });
     }, []);
 
     useEffect(() => {
@@ -150,42 +199,20 @@ function Leaderboards() {
     }, [topic])
 
     useEffect(() => {
-        if (recordingLeaderboards.length === 0) {
-            setRecordingEmpty(true);
-        } else {
-            setRecordingEmpty(false);
-        }
+        setRecordingEmpty(recordingLeaderboards.length === 0);
     }, [recordingLeaderboards]);
 
     useEffect(() => {
-        const leaderboardListener = (data) => {
-            if (data['leaderboard'].length === 0) {
-                setLeaderboardEmpty(true);
-            } else {
-                setLeaderboardEmpty(false);
-            }
-            setRank(data['rank'][0]);
-            setLeaderboards(data['leaderboard']);
-            setScreen("home");
-            // console.log(data);
-        };
-        socket.on("leaderboards", leaderboardListener);
-        return function cleanSockets() {
-            socket.off("leaderboards", leaderboardListener);
-        };
-    });
+        setLeaderboardEmpty(leaderboards.length === 0);
+    }, [leaderboards]);
 
     if (screen === "home") {
         const leaderboardArr = []; // rank, username, points
         const recordingLeaderboardArr = [];
-        let currank = 1;
 
-        for (const user in leaderboards) {
-            leaderboardArr.push([currank, leaderboards[user][0], leaderboards[user][1]]);
-            currank++;
+        for(let i = 0; i < leaderboards.length; i++) {
+            leaderboardArr.push([i+1, leaderboards[i].username, leaderboards[i].ratings]);
         }
-        
-        currank = 1;
         for(let i = 0; i < recordingLeaderboards.length; i++) {
             recordingLeaderboardArr.push([i+1, recordingLeaderboards[i].username, recordingLeaderboards[i].recordingScore]);
 
@@ -249,8 +276,8 @@ function Leaderboards() {
                     </div>
                     <div class="leaderboards-topics-title-divider"></div>
                     <div class="leaderboards-topic-list-wrapper">
-                        <Topic name="Overall" rank={(rank === -1 ? "--" : rank.toString())} self={"all"} topic={topic} setTopic={setTopic} />
-                        <Topic name="Recording" rank={(recordingRank === -1 ? "--" : recordingRank.toString())} self={"recording"} topic={topic} setTopic={setTopic} />
+                        <Topic name="Overall" rank={(rank > 0 ? rank.toString() : "--")} self={"all"} topic={topic} setTopic={setTopic} />
+                        <Topic name="Recording" rank={(recordingRank > 0 ? recordingRank.toString() : "--")} self={"recording"} topic={topic} setTopic={setTopic} />
                     </div>
                 </div>
             </div>
