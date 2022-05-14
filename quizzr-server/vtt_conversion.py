@@ -69,6 +69,10 @@ def divide_seconds(seconds: float) -> Tuple[int, int, int]:
     return int(minutes % 60), int(seconds % 60), int(milliseconds % 1e+3)
 
 
+def datetime_to_vtt_timestamp(dt: datetime):
+    return f"{dt.minute:02}:{dt.second}.{int(dt.microsecond / 1e+3):03}"
+
+
 def realign_alignment(orig_alignment: transcription.Transcription) -> transcription.Transcription:
     """
     Create a new Gentle ``Transcription`` object with punctuation included in the words and all failed cases resolved by
@@ -167,8 +171,8 @@ def offset_cues(vtt_input, seconds):
         start_time_fixed = datetime.strptime(start, dt_format) + td
         end_time_fixed = datetime.strptime(end, dt_format) + td
 
-        start_time = start_time_fixed.strftime(dt_format)
-        end_time = end_time_fixed.strftime(dt_format)
+        start_time = datetime_to_vtt_timestamp(start_time_fixed)
+        end_time = datetime_to_vtt_timestamp(end_time_fixed)
 
         vtt_output += f"{start_time} --> {end_time}\n"
 
