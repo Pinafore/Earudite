@@ -34,7 +34,7 @@ function RatingCard(props) {
     return (
         <div class="profile-ratingcard-wrapper">
             <div class="profile-comingsoon">
-                COMING SOON
+                
             </div>
         </div>
     );

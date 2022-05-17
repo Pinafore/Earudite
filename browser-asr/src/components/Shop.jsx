@@ -135,6 +135,7 @@ function Shop() {
 
     useEffect(() => {
         rerollTranscripts();
+        // eslint-disable-next-line
     }, []);
 
     function submitAudios() {

@@ -88,9 +88,9 @@ function VoiceButton(props) {
   
 }
 
-async function initialize2(foo, foo2) {
-  await foo().then(() => {foo2();});
-}
+// async function initialize2(foo, foo2) {
+//   await foo().then(() => {foo2();});
+// }
 
 
 // Hook for the answer box at the bottom of all games
@@ -101,7 +101,7 @@ function AnswerBox(props) {
   const authtoken = useRecoilValue(AUTHTOKEN);
   const alert = useAlert();
   const socket = useRecoilValue(SOCKET);
-  const [showProgressBar, setShowProgressBar] = useState(false);
+  // const [showProgressBar, setShowProgressBar] = useState(false);
   const [speechMode, setSpeechMode] = useState(0);
 
   // ASR always picks up the wake word, this function removes it
@@ -227,7 +227,7 @@ function AnswerBox(props) {
     return () => {
       clearTimeout(readyTO);
     }
-  }, [props.question]);
+  }, [props.question, resetForNewQuestion, setIsReady, speechMode]);
 
   // useEffect(() => {
   //   console.log(timeLeft, processingAudio, status, listening);
@@ -236,13 +236,13 @@ function AnswerBox(props) {
   // On speech mode change update if ASR is ready
   useEffect(()=> {
     setIsReady(speechMode > 0);
-  },[speechMode]);
+  },[speechMode, setIsReady]);
 
   useEffect(() => {
     if(!props.state.inGame) {
       stopListening();
     }
-  }, [props.state.inGame])
+  }, [props.state.inGame, stopListening])
 
   // Start listening and reset stage when ready
   useEffect(() => {
@@ -250,7 +250,7 @@ function AnswerBox(props) {
       manager.resetStage();
       startListening();
     }
-  }, [ready]);
+  }, [ready, manager, startListening]);
 
   useEffect(() => {
     if(props.buzzer !== username) {
@@ -261,6 +261,7 @@ function AnswerBox(props) {
   useEffect(()=> {
     console.log("IS LISTENING");
     initialize();
+    // eslint-disable-next-line
   },[]);
 
   useKeyPress("Enter", submit1, [props.answer], true);

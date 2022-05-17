@@ -5,13 +5,13 @@ import Game from './Game.jsx';
 import Tutorial from './Tutorial.jsx';
 import Lobby from './Lobby.jsx';
 import { useRecoilState, useRecoilValue, useSetRecoilState } from "recoil";
-import { SCREEN, PLAY_SCREEN, SOCKET, PROFILE, TRANSCRIPTS, AUTHTOKEN, URLS, PREVSCREEN, INTERFACE_NAME } from "../store";
+import { SCREEN, PLAY_SCREEN, SOCKET, PROFILE, AUTHTOKEN, URLS, PREVSCREEN, INTERFACE_NAME } from "../store";
 import { useAlert } from 'react-alert';
 import axios from 'axios';
 
 // PAGES
 import Dashboard from './Dashboard.jsx';
-import Profile from './Profile.jsx';
+// import Profile from './Profile.jsx';
 import Shop from './Shop.jsx';
 import Play from './Play.jsx';
 import Leaderboards from './Leaderboards.jsx';
@@ -21,7 +21,7 @@ import CreateAccount from './CreateAccount.jsx';
 import HelpOutlineIcon from '@material-ui/icons/HelpOutline';
 // Sidenav
 import DashboardIcon from '@material-ui/icons/Dashboard';
-import AccountCircleIcon from '@material-ui/icons/AccountCircle';
+// import AccountCircleIcon from '@material-ui/icons/AccountCircle';
 import SportsEsportsIcon from '@material-ui/icons/SportsEsports';
 import ExitToAppIcon from '@material-ui/icons/ExitToApp';
 import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
@@ -167,7 +167,7 @@ function Sidenav(props) {
             <div class="sidenav-logo-title">{interface_name}</div>
             <div class="sidenav-logo-subtitle"><b>the</b> quiz game</div>
             <div class="sidenav-tabs-wrapper">
-                <SidenavItem label="Profile" icon={<AccountCircleIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(1); document.location.hash = "profile";}} textColor={MainColor}/>
+                {/* <SidenavItem label="Profile" icon={<AccountCircleIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(1); document.location.hash = "profile";}} textColor={MainColor}/> */}
                 <SidenavItem label="Dashboard" icon={<DashboardIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(2); document.location.hash = "dashboard";}} textColor={MainColor}/>
                 <SidenavItem label="Play" icon={<SportsEsportsIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(3); document.location.hash = "play";}} textColor={MainColor}/>
                 <SidenavItem label="Record" icon={<MicIcon style={{color: MainColor}}/>} setScreen={() => {props.setScreen(4); document.location.hash = "shop";}} textColor={MainColor}/>
@@ -183,6 +183,8 @@ function Sidenav(props) {
 // page header w/ coins, title, and description
 function PageHeader(props) {
     // const [screen, setScreen] = useRecoilState(SCREEN);
+    const profile = useRecoilValue(PROFILE);
+    const username = profile["username"];
 
     return (
         <div class="page-header-wrapper">
@@ -196,7 +198,9 @@ function PageHeader(props) {
                 </div>
             </div>
             <div class="page-header-right-wrapper">
-                
+                <div class="page-header-username">
+                    {username}
+                </div>
                 {/* Energy */}
                 {/* <div class="page-header-energy-wrapper">
                     <div class="page-header-energy-cooldowntext"></div>
@@ -233,7 +237,6 @@ function BigWhitePanel() {
     const setProfile = useSetRecoilState(PROFILE);
     const alert = useAlert();
     const socket = useRecoilValue(SOCKET);
-    const setTranscripts = useSetRecoilState(TRANSCRIPTS);
     const setAuthtoken = useSetRecoilState(AUTHTOKEN);
     const setPrevScreen = useSetRecoilState(PREVSCREEN);
 
@@ -327,7 +330,7 @@ function BigWhitePanel() {
           }
         });
         return () => unregisterAuthObserver(); // Make sure we un-register Firebase observers when the component unmounts.
-    }, [alert, setAuthtoken, setProfile, setScreen, urls]);
+    }, [alert, setAuthtoken, setProfile, setScreen, urls, setPlayScreen]);
 
     function isChrome() {
         var isChromium = window.chrome;
@@ -419,24 +422,26 @@ function BigWhitePanel() {
                 
             </div>
         );
-    } else if(screen === 1) { // profile
-        return (
-            <div class="big-white-panel-wrapper">
-                <div class="big-white-panel">
-                    <div class="content-wrapper">
-                        <Sidenav setScreen={setScreen}/>
-                        <div class="page-body-wrapper">
-                            <PageHeader title="Profile" caption="Track your statistics, match history, recordings, and rating!"/>
-                            <div class="page-body-content-wrapper">
-                                <Profile/>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <TutorialBtn2/>
-            </div>
-        );
-    } else if(screen === 3) { // select gamemode / lobby
+    } 
+    // else if(screen === 1) { // profile
+    //     return (
+    //         <div class="big-white-panel-wrapper">
+    //             <div class="big-white-panel">
+    //                 <div class="content-wrapper">
+    //                     <Sidenav setScreen={setScreen}/>
+    //                     <div class="page-body-wrapper">
+    //                         <PageHeader title="Profile" caption="Track your statistics, match history, recordings, and rating!"/>
+    //                         <div class="page-body-content-wrapper">
+    //                             <Profile/>
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //             </div>
+    //             <TutorialBtn2/>
+    //         </div>
+    //     );
+    // } 
+    else if(screen === 3) { // select gamemode / lobby
         if(playScreen === 'casualsolo'){
             return (
                 <div class="big-white-panel-wrapper">

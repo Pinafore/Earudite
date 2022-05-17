@@ -246,7 +246,11 @@
     font-size: 0.6rem;
 }
 
-
+.page-header-username {
+    font-weight: 700;
+    margin-right: 2rem;
+    font-size: 1.25rem;
+}
 
 
 

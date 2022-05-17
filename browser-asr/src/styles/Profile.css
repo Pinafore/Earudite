@@ -50,7 +50,8 @@
     flex-grow: 2;
     flex-basis: 0;
     border-radius: 1rem;
-    background-color: #EFF2FC;
+    background-color: white;
+    /* background-color: #EFF2FC; */
 }
 
 

@@ -118,6 +118,7 @@
     margin-top: 0.5rem;
     padding: 0.25rem;
     justify-content: space-between;
+    cursor: pointer;
 }
 
 .leaderboards-topic-wrapper:hover {
@@ -130,6 +131,7 @@
 
 .leaderboards-topic-wrapper-selected {
     border-color: #6287F6;
+    cursor: pointer;
 }
 
 .leaderboards-topic-wrapper-selected:hover {

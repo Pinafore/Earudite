@@ -1,12 +1,10 @@
 import "../styles/Leaderboards.css";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRecoilValue } from "recoil";
 import {
     Tooltip,
 } from 'react-tippy';
 import {
-    SOCKET,
-    AUTHTOKEN,
     URLS,
     PROFILE
 } from "../store";
@@ -14,7 +12,7 @@ import { useAlert } from 'react-alert';
 import axios from 'axios';
 
 // ASSETS
-import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
+// import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import LoopIcon from '@material-ui/icons/Loop';
 
 
@@ -86,8 +84,6 @@ function Topic(props) {
 
 //leaderboards hook
 function Leaderboards() {
-    const socket = useRecoilValue(SOCKET);
-    const authtoken = useRecoilValue(AUTHTOKEN);
     const urls = useRecoilValue(URLS);
     const profile = useRecoilValue(PROFILE);
     const alert = useAlert();
@@ -110,15 +106,14 @@ function Leaderboards() {
 
     const screenRef = useRef(screen);
     screenRef.current = screen;
-
-    function updateLeaderboards() {
+    const updateLeaderboards = useCallback(() => {
         const TO = setTimeout(() => {
             if (screenRef.current === "loading") {
                 setScreen("home");
                 alert.error("Failed to get leaderboards");
             }
         }, 5000);
-
+    
         if(topic === "all") {
             setScreen("loading");
             axios.get(urls['dataflow'] + '/leaderboard')
@@ -126,7 +121,7 @@ function Leaderboards() {
                     setLeaderboards(response.data.results);
                     setScreen("home");
                     clearTimeout(TO);
-
+    
                     let rank1 = -1;
                     for(let i = 0; i < response.data.results.length; i++) {
                         if(response.data.results[i]._id === profile._id) {
@@ -142,7 +137,7 @@ function Leaderboards() {
                     setRecordingLeaderboards(response.data.results);
                     setScreen("home");
                     clearTimeout(TO);
-
+    
                     let rank1 = -1;
                     for(let i = 0; i < response.data.results.length; i++) {
                         if(response.data.results[i]._id === profile._id) {
@@ -152,7 +147,7 @@ function Leaderboards() {
                     setRecordingRank(rank1+1);
                 });
         }
-    }
+    }, [alert, profile._id, topic, urls]);
 
     useEffect(() => {
         const TO = setTimeout(() => {
@@ -192,11 +187,11 @@ function Leaderboards() {
             setScreen("home");
             clearTimeout(TO);
         });
-    }, []);
+    }, [alert, profile._id, urls]);
 
     useEffect(() => {
         updateLeaderboards();
-    }, [topic])
+    }, [topic, updateLeaderboards]);
 
     useEffect(() => {
         setRecordingEmpty(recordingLeaderboards.length === 0);
