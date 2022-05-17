@@ -227,7 +227,8 @@ function AnswerBox(props) {
     return () => {
       clearTimeout(readyTO);
     }
-  }, [props.question, resetForNewQuestion, setIsReady, speechMode]);
+    // eslint-disable-next-line
+  }, [props.question]);
 
   // useEffect(() => {
   //   console.log(timeLeft, processingAudio, status, listening);
@@ -236,13 +237,15 @@ function AnswerBox(props) {
   // On speech mode change update if ASR is ready
   useEffect(()=> {
     setIsReady(speechMode > 0);
-  },[speechMode, setIsReady]);
+    // eslint-disable-next-line
+  },[speechMode]);
 
   useEffect(() => {
     if(!props.state.inGame) {
       stopListening();
     }
-  }, [props.state.inGame, stopListening])
+    // eslint-disable-next-line
+  }, [props.state.inGame])
 
   // Start listening and reset stage when ready
   useEffect(() => {
