@@ -1,3 +1,4 @@
+from audioop import reverse
 import eventlet
 
 eventlet.monkey_patch()
@@ -32,6 +33,7 @@ lobbies = {}  # room name : lobby object
 games = {}  # room name : game object
 previous_gamestate = {}  # room name : game object (used for catching when to send next question
 clients = {}  # sid : username
+reverse_clients = {} # username : sid
 score_events = deque([])
 leaderboard = []
 queues = {
@@ -41,8 +43,44 @@ queues = {
     "rankedduo": deque([]),
 }
 
-
 # SHARED BETWEEN THREADS
+
+def only_connection(username): # checks if an incoming username is already actively in another lobby/game
+    # return true if this is the user's only connection to lobbies/games
+    try:
+        # Check if user is already in something
+        if not (username in reverse_clients):
+            print(reverse_clients)
+            # user has not connected before
+            return True
+        
+        # Check if in something
+        if (username in current_lobby):
+            # user has connected to something
+            lobbycode = current_lobby[username]
+            
+            # check lobbies
+            lobby = lobbies[lobbycode]
+            if not lobby.game_started:
+                lobbylist = lobby.get_players_list()
+                if username in lobbylist:
+                    return False
+                else:
+                    return True
+
+            # Check games
+            current_game = games[lobbycode]
+            if not current_game.active_game:
+                # inactive game
+                return True
+            else:
+                # active game
+                return False
+        else:
+            return True
+    except Exception:
+        return True
+
 
 def emit_game_state(sleep_time=0.1):  # emits the game state (time left on clock, who is buzzing, time remaining in
     # the buzz, points, etc.)
@@ -151,8 +189,14 @@ def start_lobby(json, methods=['GET', 'POST']):
     cache_user(json['auth'])
     user = get_user(json['auth'])
     username = user['username']
+    
+    if not only_connection(username):
+        emit('alert', ['error', 'Cannot play in multiple windows'])
+        return
 
     clients[request.sid] = username
+    reverse_clients[username] = request.sid
+
     lobbycode = lobbycode_generator(6)
     while lobbycode in lobbies:
         lobbycode = lobbycode_generator(6)
@@ -171,8 +215,14 @@ def join_lobby(json, methods=['GET', 'POST']):
     user = get_user(json['auth'])
     username = user['username']
     lobbycode = json['lobby']
+    
+    if not only_connection(username):
+        emit('alert', ['error', 'Cannot play in multiple windows'])
+        return
 
     clients[request.sid] = username
+    reverse_clients[username] = request.sid
+
     if not (lobbycode in lobbies):
         emit('alert', ['error', 'Lobby ' + str(lobbycode) + ' does not exist'])
         return
