@@ -39,7 +39,7 @@ function NewsColumn(props) {
                 <div class="newscolumn-title">News</div>
             </div>
             <div class="newscolumn-cards-wrapper">
-                <NewsCard title="Official Beta Release!" date="Aug 29th, 2021" content="This is our very first news release- we are officially in Beta!"/>
+                <NewsCard title="Official Beta Release!" date="May 17th, 2022" content="This is our very first news release- we are officially in Beta!"/>
             </div>
         </div>
     );
