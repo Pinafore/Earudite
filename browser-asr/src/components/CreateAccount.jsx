@@ -13,10 +13,11 @@ function CreateAccount(props) {
     const [username, setUsername] = useState('');
     const setScreen = useSetRecoilState(SCREEN);
     const placeholderUsername = "mickthemouse123";
+    const maxUsernameLength = 16;
     const setProfile = useSetRecoilState(PROFILE);
     const interface_name = useRecoilValue(INTERFACE_NAME);
     const alert2 = useAlert();
-    
+
     // Terms & Conditions
     const [createAccountScreen, setCreateAccountScreen] = useState("normal");
     const [registerAttempts, setRegisterAttempts] = useState(0);
@@ -29,6 +30,10 @@ function CreateAccount(props) {
 
     //registers the user
     function register() {
+        if(username.length > maxUsernameLength) {
+            alert2.error("Username must be at most " + maxUsernameLength + " characters long");
+            return;
+        }
         if(!termsAgreed) {
             if(registerAttempts <= 0) {
                 setRegisterAttempts(1);
@@ -91,7 +96,7 @@ function CreateAccount(props) {
                             <div class="createaccount-tinylabel"></div>
                             <input type="text" value={username} placeholder={placeholderUsername} onChange={handleUsername} class="createaccount-username-textbox"/>
                             <div class="createaccount-tinylabel">
-                                Alphanumeric characters only
+                                Alphanumeric characters only. {maxUsernameLength} characters max
                             </div>
                         </div>
                     </div>
@@ -107,7 +112,7 @@ function CreateAccount(props) {
                             If you agree to participate, please select "Agree" below.
                         </div>
                         <div class="createaccount-consent-btn-wrapper">
-                            <div className={'createaccount-consent-btn createaccount-consent-btn-right' + (termsAgreed ? " createaccount-consent-btn-selected" : "")} onClick={() => {setTermsAgreed(true)}}>
+                            <div className={'createaccount-consent-btn createaccount-consent-btn-right' + (termsAgreed ? " createaccount-consent-btn-selected-right" : "")} onClick={() => {setTermsAgreed(true)}}>
                                 Agree
                             </div>
                             <div className={'createaccount-consent-btn' + (termsAgreed ? "" : " createaccount-consent-btn-selected")} onClick={() => {setTermsAgreed(false)}}>

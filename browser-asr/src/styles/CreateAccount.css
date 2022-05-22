@@ -81,15 +81,24 @@
     padding: 0.5rem 1rem 0.5rem 1rem;
     cursor: pointer;
     border-radius: 0.5rem;
-    border: 1px solid lightgrey;
+    border: 1px solid #b52121;
 }
 
 .createaccount-consent-btn-right {
     margin-right: 1rem;
+    border: 1px solid #21b521;
 }
 
 .createaccount-consent-btn-selected {
-    border: 1px solid #2046F5;
+    border: 1px solid #b52121;
+    background-color: #b52121;
+    color: white;
+}
+
+.createaccount-consent-btn-selected-right {
+    border: 1px solid #21b521;
+    background-color: #21b521;
+    color: white;
 }
 
 .createaccount-username-textbox-wrapper {
