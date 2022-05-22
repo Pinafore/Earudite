@@ -1548,7 +1548,10 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             abort(HTTPStatus.NOT_FOUND)
 
         if _query_flag("batch") and "batchUUID" in audio_doc:
-            cursor = qtpm.audio.find({"batchUUID": audio_doc["batchUUID"]}, {"vtt": 1, "duration": 1})
+            cursor = qtpm.audio.find(
+                {"batchUUID": audio_doc["batchUUID"]}, {"vtt": 1, "duration": 1},
+                sort=[("sentenceId", pymongo.ASCENDING), ("tokenizationId", pymongo.ASCENDING)]
+            )
             vtts = []
             durations = []
             for doc in cursor:
