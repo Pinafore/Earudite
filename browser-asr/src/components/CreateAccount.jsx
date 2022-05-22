@@ -105,7 +105,7 @@ function CreateAccount(props) {
                             By clicking on the "Agree" button below you indicate that you are at least 18 years of age; you have read the 
                             &nbsp;<a href="https://docs.google.com/document/d/1pQq3HgdMJy_4cahZ5DvRCkMAYkbsIe-OHZL58z0-VuU/edit?usp=sharing" target="_blank" rel="noopener noreferrer">User Terms and Conditions</a> 
                             &nbsp;and 
-                            &nbsp;<a href="https://docs.google.com/document/d/1b50CNMTupWWkBhFNBXBdQJKWgElAnTDL7u5Nms9s8UE/edit?usp=sharing" target="_blank" rel="noopener noreferrer">Privacy Policy &#38; Consent to Participate</a> 
+                            &nbsp;<a href="https://docs.google.com/document/d/1IFyZkc-wjfpTmME08WWXsJwneRB5jBh7/edit?usp=sharing&ouid=117138658017388824283&rtpof=true&sd=true" target="_blank" rel="noopener noreferrer">Consent to Participate form</a> 
                             &nbsp;or have had it read to you; your questions have been answered to your satisfaction and you voluntarily agree to participate in this research study. You will receive a copy of the "User Terms and Conditions" and "Privacy Policy &#38; Consent to Participate" forms.
                             <br/>
                             <br/>
