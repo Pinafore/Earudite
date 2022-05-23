@@ -69,6 +69,40 @@ function Player(props) {
     
 }
 
+// Taken from stack overflow, simply clones a JS object
+function clone(obj) {
+    var copy;
+
+    // Handle the 3 simple types, and null or undefined
+    if (null == obj || "object" != typeof obj) return obj;
+
+    // Handle Date
+    if (obj instanceof Date) {
+        copy = new Date();
+        copy.setTime(obj.getTime());
+        return copy;
+    }
+
+    // Handle Array
+    if (obj instanceof Array) {
+        copy = [];
+        for (var i = 0, len = obj.length; i < len; i++) {
+            copy[i] = clone(obj[i]);
+        }
+        return copy;
+    }
+
+    // Handle Object
+    if (obj instanceof Object) {
+        copy = {};
+        for (var attr in obj) {
+            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+        }
+        return copy;
+    }
+
+    throw new Error("Unable to copy obj! Its type isn't supported.");
+}
 
 // lobby hook
 function Lobby() {
@@ -80,14 +114,24 @@ function Lobby() {
     const setScreen = useSetRecoilState(SCREEN);
     const authtoken = useRecoilValue(AUTHTOKEN);
     const [lobbyScreen, setLobbyScreen] = useState("inlobby");
+    const [recoilGameSettings, setRecoilGameSettings] = useRecoilState(GAMESETTINGS);
+
+    const initialGameSettings = clone(recoilGameSettings);
+    console.log(recoilGameSettings);
     
     // Game settings
     const [gameSettings, setGameSettings] = useReducer(
         (state, newState) => ({...state, ...newState}),
-        useRecoilValue(GAMESETTINGS)
+        initialGameSettings
     );
 
+    // Copy game settings over to the recoil value
+    useEffect(() => {
+        setRecoilGameSettings(gameSettings);
+        // eslint-disable-next-line
+    }, [gameSettings]);
 
+    // console.log(gameSettings);
     useEffect(() => {
         const lobbyStateListener = (data) => {
             setGameSettings({
@@ -218,7 +262,7 @@ function Lobby() {
                                         valueLabelDisplay="auto"
                                         step={1}
                                         min={1}
-                                        max={7}
+                                        max={20}
                                         value={gameSettings['questions_num']}
                                         onChange={(event, value) => {
                                             updateSettings({'questions_num': value});

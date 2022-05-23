@@ -406,6 +406,7 @@ function Game() {
   const setScreen = useSetRecoilState(SCREEN);
   const setPlayScreen = useSetRecoilState(PLAY_SCREEN);
   const gameSettings = useRecoilValue(GAMESETTINGS);
+  // console.log(gameSettings);
   const [totalTime, setTotalTime] = useState(40);
   const [totalTimeBeenSet, setTotalTimeBeenSet] = useState(false);
   const [showConffeti, setShowConfetti] = useState(false);
@@ -580,7 +581,7 @@ function Game() {
                     R: {state.round} / Q: {state.question}
                   </div>
 
-                  {state.gapTime < gameSettings.post_buzz_time && (
+                  {state.gapTime < gameSettings.gap_time && (
                     <div class="game-header-time">
                       <div class="game-header-time-sep">{state.gapTime}s</div>
                       <div style={{ width: "21rem" }}>
@@ -588,7 +589,7 @@ function Game() {
                           barData={[{ width: 100 }]}
                           progressData={[
                             Math.round(
-                              (state.gapTime / gameSettings.post_buzz_time) *
+                              (state.gapTime / gameSettings.gap_time) *
                                 100
                             ),
                           ]}
@@ -598,7 +599,7 @@ function Game() {
                       </div>
                     </div>
                   )}
-                  {state.gapTime >= gameSettings.post_buzz_time && (
+                  {state.gapTime >= gameSettings.gap_time && (
                     <div class="game-header-time">
                       <div class="game-header-time-sep">
                         {state.questionTime}s
