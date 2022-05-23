@@ -191,7 +191,7 @@ def start_lobby(json, methods=['GET', 'POST']):
     username = user['username']
     
     if not only_connection(username):
-        emit('alert', ['error', 'Cannot play in multiple windows'])
+        emit('alert', ['error', 'Already in a running lobby/game'])
         return
 
     clients[request.sid] = username
@@ -217,7 +217,7 @@ def join_lobby(json, methods=['GET', 'POST']):
     lobbycode = json['lobby']
     
     if not only_connection(username):
-        emit('alert', ['error', 'Cannot play in multiple windows'])
+        emit('alert', ['error', 'Already in a running lobby/game'])
         return
 
     clients[request.sid] = username

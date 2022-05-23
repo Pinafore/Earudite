@@ -34,7 +34,7 @@ function Tutorial() {
         },
         {
             img: Tutorial4,
-            text: "... and start a lobby. "
+            text: "... and start a lobby. Note you can only be in one lobby or game at a time (including active games that you have left)!"
         },
         {
             img: Tutorial5,
