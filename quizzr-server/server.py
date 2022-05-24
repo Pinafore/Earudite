@@ -852,6 +852,16 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         return send_file(file, mimetype="audio/wav")
 
+    @app.get("/audio/<audio_id>")
+    def get_audio_endpoint(audio_id):
+        decoded = _verify_id_token()
+        user_id = decoded["uid"]
+        profile = qtpm.users.find_one({"_id": user_id})
+        if profile["permLevel"] != "admin":
+            abort(HTTPStatus.UNAUTHORIZED)
+
+        return get_audio(audio_id)
+
     @app.delete("/audio/<audio_id>")
     def delete_audio(audio_id):
         """

@@ -1,6 +1,8 @@
+import io
 import os
 
 import firebase_admin
+import pyAesCrypt
 import pymongo
 import pymongo.database
 import bson.json_util
@@ -8,7 +10,7 @@ from firebase_admin import credentials, storage
 
 
 # Prototype for downloading the entire dataset.
-
+AES_BUFFER_SIZE = 1024 * 64
 
 def download_collection(db: pymongo.database.Database, collection_name: str, download_dir: str):
     path = os.path.join(download_dir, collection_name) + ".json"
@@ -78,9 +80,29 @@ def main():
         path = os.path.normpath(os.path.join(firebase_dir, blob.name)) + ext
         directory = os.path.dirname(path)
         os.makedirs(directory, exist_ok=True)
+
+        # Attempt to decrypt the blob
+        print(f"Downloading blob with name '{blob.name}'...")
+        file_bytes = blob.download_as_bytes()
+        fh_aes = io.BytesIO(file_bytes)
+        final_bytesio = io.BytesIO()
+
+        print("Attempting decryption...")
+
+        try:
+            print("Decryption successful")
+            pyAesCrypt.decryptStream(fh_aes, final_bytesio, os.environ["DF_SERVER_AUDIO_PSWD"],
+                                     AES_BUFFER_SIZE, len(fh_aes.getvalue()))
+        except ValueError as e:
+            print(f"Decryption failed: {e}. Proceeding without decryption")
+            final_bytesio.write(file_bytes)
+
+        final_bytesio.seek(0)  # Reset BytesIO to beginning
+
         if not os.path.exists(path):
-            print(f"Downloading blob with name '{blob.name}'...")
-            blob.download_to_filename(path)
+            print("Saving result...")
+            with open(path, "wb") as f:
+                f.write(final_bytesio.read())
         else:
             print(f"Blob with name '{blob.name}' already downloaded. Skipping")
 
