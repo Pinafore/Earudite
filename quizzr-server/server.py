@@ -1125,9 +1125,15 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 log_msg=True
             )
 
+        qtpm.rollover_gameplay_leaderboard()
+
+        now = datetime.now().isoformat()
         update_batch = []
         for username, rating in ratings.items():
-            update_batch.append(UpdateOne({"username": username}, {"$inc": {"ratings": rating}}))
+            update_batch.append(UpdateOne(
+                {"username": username},
+                {"$inc": {"ratings": rating}, "$set": {"lastRatingsUpdate": now}}
+            ))
 
         if not update_batch:
             return _make_err_response(

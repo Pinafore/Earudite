@@ -513,6 +513,7 @@ class QuizzrTPM:
         :return: A tuple containing the results from inserting to the Audio and UnprocessedAudio collections
                  respectively.
         """
+        self.rollover_recording_leaderboard()
         processing_list = ["normal"]
         question_audio_batch = []
         other_audio_batch = []
@@ -579,9 +580,43 @@ class QuizzrTPM:
             proc_results = self.audio.insert_many(other_audio_batch)
             self.logger.info(f"Inserted {len(proc_results.inserted_ids)} buzz and/or answer recording(s) into the Audio collection")
         self.add_recs_to_users(uid2rec_docs)
+
+        now = datetime.now().isoformat()
         for uid, cumulative_score in user_cumulative_scores.items():
-            self.users.update_one({"_id": uid}, {"$inc": {"recordingScore": cumulative_score}})
+            self.users.update_one(
+                {"_id": uid},
+                {"$inc": {"recordingScore": cumulative_score}, "$set": {"lastRecordingUpdate": now}}
+            )
         return question_rec_results, proc_results
+
+    def rollover_gameplay_leaderboard(self):
+        """
+        Enforce monthly reset of the gameplay leaderboard.
+
+        Note: The gameplay leaderboard will only reset when this function is called and no user has played in the
+        current month.
+        """
+        cursor = self.users.find({"lastRatingsUpdate": {"$exists": True}}, {"_id": 1, "lastRatingsUpdate": 1})
+        now = datetime.now().isoformat()
+        for profile in cursor:
+            if datetime.fromisoformat(profile["lastRatingsUpdate"]).month != datetime.now().month:
+                self.users.update_one({"_id": profile["_id"]}, {"$set": {"ratings": 0, "lastRatingsUpdate": now}})
+
+    def rollover_recording_leaderboard(self):
+        """
+        Enforce monthly reset of the recording leaderboard.
+
+        Note: The recording leaderboard will only reset when this function is called and no user has submitted a
+        recording in the current month.
+        """
+        cursor = self.users.find({"lastRecordingUpdate": {"$exists": True}}, {"_id": 1, "lastRecordingUpdate": 1})
+        now = datetime.now().isoformat()
+        for profile in cursor:
+            if datetime.fromisoformat(profile["lastRecordingUpdate"]).month != datetime.now().month:
+                self.users.update_one(
+                    {"_id": profile["_id"]},
+                    {"$set": {"recordingScore": 0, "lastRecordingUpdate": now}}
+                )
 
     def get_profile(self, user_id: str, visibility: str) -> Optional[dict]:
         """
