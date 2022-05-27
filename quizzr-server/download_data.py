@@ -61,7 +61,7 @@ def main():
     os.makedirs(mongo_dir, exist_ok=True)
 
     db = mongodb_client.get_database(db_name)
-    for coll_name in ["Audio", "RecordedQuestions", "UnprocessedAudio", "UnrecordedQuestions", "Games", "Users"]:
+    for coll_name in ["Audio", "RecordedQuestions", "LeaderboardArchive", "UnrecordedQuestions", "Games", "Users"]:
         download_collection(db, coll_name, mongo_dir)
 
     firebase_dir = os.path.join(download_dir, "firebase")

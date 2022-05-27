@@ -60,6 +60,7 @@ class QuizzrTPM:
         self.audio: Collection = self.database.Audio
         self.unproc_audio: Collection = self.database.UnprocessedAudio
         self.games: Collection = self.database.Games
+        self.leaderboard_archive: Collection = self.database.LeaderboardArchive
 
         self.rec_question_ids = self.get_ids(self.rec_questions)
         self.unrec_question_ids = self.get_ids(self.unrec_questions)
@@ -596,11 +597,29 @@ class QuizzrTPM:
         Note: The gameplay leaderboard will only reset when this function is called and no user has played in the
         current month.
         """
-        cursor = self.users.find({"lastRatingsUpdate": {"$exists": True}}, {"_id": 1, "lastRatingsUpdate": 1})
-        now = datetime.now().isoformat()
-        for profile in cursor:
-            if datetime.fromisoformat(profile["lastRatingsUpdate"]).month != datetime.now().month:
-                self.users.update_one({"_id": profile["_id"]}, {"$set": {"ratings": 0, "lastRatingsUpdate": now}})
+        cursor = self.users.find(
+            {"lastRatingsUpdate": {"$exists": True}},
+            sort=[("ratings", pymongo.DESCENDING)],
+            projection={"_id": 1, "lastRatingsUpdate": 1, "ratings": 1})
+        now = datetime.now()
+        leaderboard = []
+        for i, profile in enumerate(cursor):
+            if datetime.fromisoformat(profile["lastRatingsUpdate"]).month != now.month:
+                self.users.update_one(
+                    {"_id": profile["_id"]},
+                    {"$set": {"ratings": 0, "lastRatingsUpdate": now.isoformat()}}
+                )
+                # Add entry to archived leaderboard
+                leaderboard.append({"userId": profile["_id"], "score": profile["ratings"], "rank": i + 1})
+
+        # Archive leaderboard only if users have been reset.
+        if leaderboard:
+            self.leaderboard_archive.insert_one({
+                "type": "gameplay",
+                "month": now.strftime("%b"),
+                "year": now.year,
+                "leaderboard": leaderboard
+            })
 
     def rollover_recording_leaderboard(self):
         """
@@ -609,14 +628,29 @@ class QuizzrTPM:
         Note: The recording leaderboard will only reset when this function is called and no user has submitted a
         recording in the current month.
         """
-        cursor = self.users.find({"lastRecordingUpdate": {"$exists": True}}, {"_id": 1, "lastRecordingUpdate": 1})
-        now = datetime.now().isoformat()
-        for profile in cursor:
-            if datetime.fromisoformat(profile["lastRecordingUpdate"]).month != datetime.now().month:
+        cursor = self.users.find(
+            {"lastRecordingUpdate": {"$exists": True}},
+            sort=[("recordingScore", pymongo.DESCENDING)],
+            projection={"_id": 1, "lastRecordingUpdate": 1, "recordingScore": 1})
+        now = datetime.now()
+        leaderboard = []
+        for i, profile in enumerate(cursor):
+            if datetime.fromisoformat(profile["lastRecordingUpdate"]).month != now.month:
                 self.users.update_one(
                     {"_id": profile["_id"]},
-                    {"$set": {"recordingScore": 0, "lastRecordingUpdate": now}}
+                    {"$set": {"recordingScore": 0, "lastRecordingUpdate": now.isoformat()}}
                 )
+                # Add entry to archived leaderboard
+                leaderboard.append({"userId": profile["_id"], "score": profile["recordingScore"], "rank": i + 1})
+
+        # Archive leaderboard only if users have been reset.
+        if leaderboard:
+            self.leaderboard_archive.insert_one({
+                "type": "recording",
+                "month": now.strftime("%b"),
+                "year": now.year,
+                "leaderboard": leaderboard
+            })
 
     def get_profile(self, user_id: str, visibility: str) -> Optional[dict]:
         """
