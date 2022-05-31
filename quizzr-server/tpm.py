@@ -600,24 +600,33 @@ class QuizzrTPM:
         cursor = self.users.find(
             {"lastRatingsUpdate": {"$exists": True}},
             sort=[("ratings", pymongo.DESCENDING)],
-            projection={"_id": 1, "lastRatingsUpdate": 1, "ratings": 1})
+            projection={"_id": 1, "lastRatingsUpdate": 1, "ratings": 1, "username": 1})
         now = datetime.now()
         leaderboard = []
+        last_update_keep = None
         for i, profile in enumerate(cursor):
-            if datetime.fromisoformat(profile["lastRatingsUpdate"]).month != now.month:
+            last_update = datetime.fromisoformat(profile["lastRatingsUpdate"])
+            if last_update.month != now.month:
+                # Assuming that users somehow do not have different last_update_keeps.
+                last_update_keep = last_update
                 self.users.update_one(
                     {"_id": profile["_id"]},
                     {"$set": {"ratings": 0, "lastRatingsUpdate": now.isoformat()}}
                 )
                 # Add entry to archived leaderboard
-                leaderboard.append({"userId": profile["_id"], "score": profile["ratings"], "rank": i + 1})
+                leaderboard.append({
+                    "userId": profile["_id"],
+                    "username": profile["username"],
+                    "score": profile["ratings"],
+                    "rank": i + 1
+                })
 
         # Archive leaderboard only if users have been reset.
         if leaderboard:
             self.leaderboard_archive.insert_one({
                 "type": "gameplay",
-                "month": now.strftime("%b"),
-                "year": now.year,
+                "month": last_update_keep.strftime("%b"),
+                "year": last_update_keep.year,
                 "leaderboard": leaderboard
             })
 
@@ -631,24 +640,32 @@ class QuizzrTPM:
         cursor = self.users.find(
             {"lastRecordingUpdate": {"$exists": True}},
             sort=[("recordingScore", pymongo.DESCENDING)],
-            projection={"_id": 1, "lastRecordingUpdate": 1, "recordingScore": 1})
+            projection={"_id": 1, "lastRecordingUpdate": 1, "recordingScore": 1, "username": 1})
         now = datetime.now()
         leaderboard = []
+        last_update_keep = None
         for i, profile in enumerate(cursor):
-            if datetime.fromisoformat(profile["lastRecordingUpdate"]).month != now.month:
+            last_update = datetime.fromisoformat(profile["lastRecordingUpdate"])
+            if last_update.month != now.month:
+                last_update_keep = last_update
                 self.users.update_one(
                     {"_id": profile["_id"]},
                     {"$set": {"recordingScore": 0, "lastRecordingUpdate": now.isoformat()}}
                 )
                 # Add entry to archived leaderboard
-                leaderboard.append({"userId": profile["_id"], "score": profile["recordingScore"], "rank": i + 1})
+                leaderboard.append({
+                    "userId": profile["_id"],
+                    "username": profile["username"],
+                    "score": profile["recordingScore"],
+                    "rank": i + 1
+                })
 
         # Archive leaderboard only if users have been reset.
         if leaderboard:
             self.leaderboard_archive.insert_one({
                 "type": "recording",
-                "month": now.strftime("%b"),
-                "year": now.year,
+                "month": last_update_keep.strftime("%b"),
+                "year": last_update_keep.year,
                 "leaderboard": leaderboard
             })
 

@@ -118,7 +118,11 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 "collection": "Users"
             },
             "leaderboard": {
-                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "recordingScore": 1, "ratings": 1},
+                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "ratings": 1},
+                "collection": "Users"
+            },
+            "leaderboardAudio": {
+                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "recordingScore": 1},
                 "collection": "Users"
             },
             "public": {
@@ -1606,7 +1610,15 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             limit=size,
             projection=visibility_config["projection"]
         )
-        return {"results": [doc for doc in cursor]}
+        results = []
+        for i, doc in enumerate(cursor):
+            doc["score"] = doc["ratings"]
+            del doc["ratings"]
+            doc["userId"] = doc["_id"]
+            del doc["_id"]
+            doc["rank"] = i + 1
+            results.append(doc)
+        return {"results": results}
 
     @app.route("/leaderboard/audio", methods=["GET"])
     def get_audio_leaderboard():
@@ -1616,7 +1628,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         :return: A dictionary containing the "results"
         """
         _block_users()
-        visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboard"]
+        visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboardAudio"]
         arg_size = request.args.get("size")
         size = arg_size or app.config["DEFAULT_LEADERBOARD_SIZE"]
         cursor = qtpm.database.get_collection(visibility_config["collection"]).find(
@@ -1625,7 +1637,65 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             limit=size,
             projection=visibility_config["projection"]
         )
-        return {"results": [doc for doc in cursor]}
+        results = []
+        for i, doc in enumerate(cursor):
+            doc["score"] = doc["recordingScore"]
+            del doc["recordingScore"]
+            doc["userId"] = doc["_id"]
+            del doc["_id"]
+            doc["rank"] = i + 1
+            results.append(doc)
+        return {"results": results}
+
+    @app.route("/leaderboard/archive/summary", methods=["GET"])
+    def get_leaderboard_summary():
+        _block_users()
+        # TODO: Make the years and months sorted.
+        cursor = qtpm.leaderboard_archive.find(projection={"month": 1, "year": 1})
+        results = {}
+        for doc in cursor:
+            if doc["year"] not in results:
+                results[doc["year"]] = []
+            results[doc["year"]].append(doc["month"])
+        final_results = []
+        for year, months in results.items():
+            final_results.append([year, months])
+        return {"summary": final_results}
+
+    @app.route("/leaderboard/archive/<int:year>/<month>", methods=["GET"])
+    def get_old_leaderboard(year, month):
+        _block_users()
+        leaderboard = qtpm.leaderboard_archive.find_one(
+            {"month": month, "year": year, "type": "gameplay"},
+            projection={"leaderboard": 1}
+        )
+        if not leaderboard:
+            return _make_err_response(
+                "Could not find leaderboard",
+                "not_found",
+                HTTPStatus.NOT_FOUND,
+                [year, month],
+                True
+            )
+
+        return {"results": leaderboard["leaderboard"]}
+
+    @app.route("/leaderboard/audio/archive/<int:year>/<month>", methods=["GET"])
+    def get_old_audio_leaderboard(year, month):
+        leaderboard = qtpm.leaderboard_archive.find_one(
+            {"month": month, "year": year, "type": "recording"},
+            projection={"leaderboard": 1}
+        )
+        if not leaderboard:
+            return _make_err_response(
+                "Could not find leaderboard",
+                "not_found",
+                HTTPStatus.NOT_FOUND,
+                [year, month],
+                True
+            )
+
+        return {"results": leaderboard["leaderboard"]}
 
     @app.route("/prescreen/<pointer>", methods=["GET"])
     def get_prescreen_status(pointer):

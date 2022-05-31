@@ -10,10 +10,13 @@ import {
 } from "../store";
 import { useAlert } from 'react-alert';
 import axios from 'axios';
+import LeaderboardMenu from './LeaderboardMenu.jsx';
 
 // ASSETS
 // import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import LoopIcon from '@material-ui/icons/Loop';
+import ArchiveIcon from '@material-ui/icons/Archive';
+import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 
 
 // single user card
@@ -90,6 +93,10 @@ function Leaderboards() {
 
     const [topic, setTopic] = useState("all");
     const [screen, setScreen] = useState("loading");
+    const [selectedYear, setSelectedYear] = useState(null);
+    const [selectedMonth, setSelectedMonth] = useState(null);
+
+    const [archiveSummary, setArchiveSummary] = useState([]);
 
     // Score leaderboards
     const [leaderboards, setLeaderboards] = useState([]);
@@ -110,13 +117,21 @@ function Leaderboards() {
         const TO = setTimeout(() => {
             if (screenRef.current === "loading") {
                 setScreen("home");
+                setSelectedMonth(null);
+                setSelectedYear(null);
                 alert.error("Failed to get leaderboards");
             }
         }, 5000);
     
         if(topic === "all") {
             setScreen("loading");
-            axios.get(urls['dataflow'] + '/leaderboard')
+
+            let gameplayUrl = urls['dataflow'] + '/leaderboard';
+            if (selectedMonth && selectedYear) {
+                gameplayUrl += '/archive/' + selectedYear + '/' + selectedMonth;
+            }
+
+            axios.get(gameplayUrl)
                 .then(function (response) {
                     setLeaderboards(response.data.results);
                     setScreen("home");
@@ -132,7 +147,13 @@ function Leaderboards() {
                 });
         } else if(topic === "recording") {
             setScreen("loading");
-            axios.get(urls['dataflow'] + '/leaderboard/audio')
+
+            let audioUrl = urls['dataflow'] + '/leaderboard/audio';
+            if (selectedMonth && selectedYear) {
+                audioUrl += '/archive/' + selectedYear + '/' + selectedMonth;
+            }
+
+            axios.get(audioUrl)
                 .then(function (response) {
                     setRecordingLeaderboards(response.data.results);
                     setScreen("home");
@@ -147,7 +168,7 @@ function Leaderboards() {
                     setRecordingRank(rank1+1);
                 });
         }
-    }, [alert, profile._id, topic, urls]);
+    }, [alert, profile._id, topic, urls, selectedMonth, selectedYear]);
 
     useEffect(() => {
         const TO = setTimeout(() => {
@@ -158,7 +179,14 @@ function Leaderboards() {
         }, 5000);
 
         setScreen("loading");
-        const gameplayLeaderboard = axios.get(urls['dataflow'] + '/leaderboard')
+
+        let gameplayUrl = urls['dataflow'] + '/leaderboard';
+        let audioUrl = urls['dataflow'] + '/leaderboard/audio';
+        if (selectedMonth && selectedYear) {
+            gameplayUrl += '/archive/' + selectedYear + '/' + selectedMonth;
+            audioUrl += '/archive/' + selectedYear + '/' + selectedMonth;
+        }
+        const gameplayLeaderboard = axios.get(gameplayUrl)
             .then(function (response) {
                 setLeaderboards(response.data.results);
 
@@ -170,7 +198,7 @@ function Leaderboards() {
                 }
                 setRank(rank1+1);
             });
-        const audioLeaderboard = axios.get(urls['dataflow'] + '/leaderboard/audio')
+        const audioLeaderboard = axios.get(audioUrl)
             .then(function (response) {
                 setRecordingLeaderboards(response.data.results);
 
@@ -182,12 +210,17 @@ function Leaderboards() {
                 }
                 setRecordingRank(rank1+1);
             });
+        
+        const archiveSummaryPromise = axios.get(urls['dataflow'] + '/leaderboard/archive/summary')
+            .then(function (response) {
+                setArchiveSummary(response.data.summary);
+            });
 
-        Promise.all([gameplayLeaderboard, audioLeaderboard]).then(() => {
+        Promise.all([gameplayLeaderboard, audioLeaderboard, archiveSummaryPromise]).then(() => {
             setScreen("home");
             clearTimeout(TO);
         });
-    }, [alert, profile._id, urls]);
+    }, [alert, profile._id, urls, selectedMonth, selectedYear]);
 
     useEffect(() => {
         updateLeaderboards();
@@ -206,19 +239,20 @@ function Leaderboards() {
         const recordingLeaderboardArr = [];
 
         for(let i = 0; i < leaderboards.length; i++) {
-            leaderboardArr.push([i+1, leaderboards[i].username, leaderboards[i].ratings]);
+            leaderboardArr.push([i+1, leaderboards[i].username, leaderboards[i].score]);
         }
         for(let i = 0; i < recordingLeaderboards.length; i++) {
-            recordingLeaderboardArr.push([i+1, recordingLeaderboards[i].username, recordingLeaderboards[i].recordingScore]);
+            recordingLeaderboardArr.push([i+1, recordingLeaderboards[i].username, recordingLeaderboards[i].score]);
 
         }
 
         return (
             <div class="leaderboards-content-wrapper">
+                {selectedMonth && selectedYear && <div onClick={() => {setScreen("archives");}} class="leaderboards-go-back-btn"><ArrowBackIcon/></div>}
                 {topic === "all" &&
                     <div class="leaderboards-board-wrapper">
                         <div class="leaderboards-board-title">
-                            Top scorers ({months[new Date().getMonth()]})
+                            Top scorers ({selectedMonth && selectedYear ? selectedMonth + " " + selectedYear : months[new Date().getMonth()]})
                             <div onClick={updateLeaderboards} class="leaderboards-update-btn leaderboards-update-btn-hvr-rotate">
                                 <LoopIcon style={{ color: "white", height: "2.5rem" }} />
                             </div>
@@ -243,7 +277,7 @@ function Leaderboards() {
                 {topic === "recording" &&
                     <div class="leaderboards-board-wrapper">
                         <div class="leaderboards-board-title">
-                            Top recorders ({months[new Date().getMonth()]})
+                            Top recorders ({selectedMonth && selectedYear ? selectedMonth + " " + selectedYear : months[new Date().getMonth()]})
                             <div onClick={updateLeaderboards} class="leaderboards-update-btn leaderboards-update-btn-hvr-rotate">
                                 <LoopIcon style={{ color: "white", height: "2.5rem" }} />
                             </div>
@@ -274,7 +308,31 @@ function Leaderboards() {
                         <Topic name="Overall" rank={(rank > 0 ? rank.toString() : "--")} self={"all"} topic={topic} setTopic={setTopic} />
                         <Topic name="Recording" rank={(recordingRank > 0 ? recordingRank.toString() : "--")} self={"recording"} topic={topic} setTopic={setTopic} />
                     </div>
+                    {(!selectedMonth || !selectedYear) && <div class="leaderboards-archive-btn" onClick={() => {setScreen("archives");}}>
+                        <ArchiveIcon/> View Older Leaderboards
+                    </div>}
                 </div>
+            </div>
+        );
+    } else if (screen === "archives") {
+        return (
+            <div class="leaderboards-content-wrapper">
+                <div 
+                    onClick={() => {setScreen("home"); setSelectedYear(null); setSelectedMonth(null);}} 
+                    class="leaderboards-go-back-btn"
+                >
+                    <ArrowBackIcon/>
+                </div>
+                {/* <LeaderboardMenu years={[
+                    [2022, ["May", "Apr", "Mar", "Feb", "Jan"]],
+                    [2021, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]],
+                    [2020, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]],
+                    [2019, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]],
+                    [2018, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]],
+                    [2017, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]],
+                    [2016, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]]
+                ]} yearCallback={setSelectedYear} monthCallback={setSelectedMonth}/> */}
+                <LeaderboardMenu years={archiveSummary} yearCallback={setSelectedYear} monthCallback={setSelectedMonth}/>
             </div>
         );
     } else if (screen === "loading") {
