@@ -109,8 +109,8 @@ const gameSettingsList = [
         tiebreaker: "Tiebreaker question"
     }),
     new gameSettings({ // gamemode = 5 (Custom)
-        title: "Custom Lobby",
-        description: "Play with friends in a completely custom lobby!",
+        title: "Create Lobby",
+        description: "Start a new game!",
         cost: "Varies",
         maxPlayers: "2-8",
         teams: "2-4",
@@ -266,7 +266,7 @@ function StartCustomLobbyButton() {
 
     return (
         <div class="play-gamemodecard-start play-hvr-grow" onClick={StartLobby}>
-            START
+            CREATE
         </div>
     )
 }
@@ -316,7 +316,7 @@ function JoinCustomLobbyCard(props) {
         <div class="play-gamemodecard-wrapper">
             <div class="play-gamemodecard-pfp" style={{ backgroundImage: `url(${props.icon})` }}></div>
             <div class="play-gamemodecard-title">
-                Join a custom lobby!
+                Join a lobby!
             </div>
 
             <input type="text" value={text} placeholder={"Room code"} onChange={handleText} class="play-joincustomlobbycard-textbox"/>
