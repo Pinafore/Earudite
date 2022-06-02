@@ -1651,15 +1651,30 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
     def get_leaderboard_summary():
         _block_users()
         # TODO: Make the years and months sorted.
-        cursor = qtpm.leaderboard_archive.find(projection={"month": 1, "year": 1})
+        month_order = {
+            "Jan": 0,
+            "Feb": 1,
+            "Mar": 2,
+            "Apr": 3,
+            "May": 4,
+            "Jun": 5,
+            "Jul": 6,
+            "Aug": 7,
+            "Sep": 8,
+            "Oct": 9,
+            "Nov": 10,
+            "Dec": 11
+        }
+        cursor = qtpm.leaderboard_archive.find(projection={"month": 1, "year": 1}, sort=[("year", pymongo.DESCENDING)])
         results = {}
         for doc in cursor:
             if doc["year"] not in results:
-                results[doc["year"]] = []
-            results[doc["year"]].append(doc["month"])
+                results[doc["year"]] = set()
+            results[doc["year"]].add(doc["month"])
         final_results = []
         for year, months in results.items():
-            final_results.append([year, months])
+            sorted_months = sorted(list(months), key=lambda e: month_order[e], reverse=True)
+            final_results.append([year, sorted_months])
         return {"summary": final_results}
 
     @app.route("/leaderboard/archive/<int:year>/<month>", methods=["GET"])
