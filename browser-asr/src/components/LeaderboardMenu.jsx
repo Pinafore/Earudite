@@ -17,7 +17,7 @@ function LeaderboardMenu(props) {
             <div class="leaderboard-menu-content-wrapper-wrapper">
                 <div class="leaderboard-menu-content-wrapper">
                     {props.years.map(([year, months]) => (
-                        <Year year={year} months={months} yearCallback={props.yearCallback} monthCallback={props.monthCallback}/>
+                        <Year key={year} year={year} months={months} setBoardCallback={props.setBoardCallback}/>
                     ))}
                     {/* <Year year={2022} months={["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]}/> */}
                 </div>
@@ -32,7 +32,7 @@ function Year(props) {
             <div class="leaderboard-menu-year-text">{props.year}</div>
             <div class="leaderboard-menu-year-divider"></div>
             {props.months.map((month) => (
-                <Month month={month} year={props.year} yearCallback={props.yearCallback} monthCallback={props.monthCallback}/>
+                <Month key={props.year.toString() + month} month={month} year={props.year} setBoardCallback={props.setBoardCallback}/>
             ))}
         </div>
     );
@@ -40,7 +40,7 @@ function Year(props) {
 
 function Month(props) {
     return (
-        <div class="leaderboard-menu-month-wrapper" onClick={() => {props.yearCallback(props.year); props.monthCallback(props.month)}}>
+        <div class="leaderboard-menu-month-wrapper" onClick={() => {props.setBoardCallback(props.year, props.month)}}>
             {props.month}
         </div>
     );

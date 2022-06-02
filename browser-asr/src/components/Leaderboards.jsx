@@ -60,12 +60,12 @@ function Topic(props) {
                 {props.rank <= 0 &&
                     <Tooltip
                         // options
-                        title=">200"
+                        title="Not on leaderboard"
                         position="top"
                         trigger="mouseenter"
                         unmountHTMLWhenHide="true"
                     >
-                        Unranked
+                        --
                     </Tooltip>
                 }
                 {props.rank > 0 &&
@@ -139,7 +139,7 @@ function Leaderboards() {
     
                     let rank1 = -1;
                     for(let i = 0; i < response.data.results.length; i++) {
-                        if(response.data.results[i]._id === profile._id) {
+                        if(response.data.results[i].userId === profile._id) {
                             rank1 = i;
                         }
                     }
@@ -161,7 +161,7 @@ function Leaderboards() {
     
                     let rank1 = -1;
                     for(let i = 0; i < response.data.results.length; i++) {
-                        if(response.data.results[i]._id === profile._id) {
+                        if(response.data.results[i].userId === profile._id) {
                             rank1 = i;
                         }
                     }
@@ -192,7 +192,7 @@ function Leaderboards() {
 
                 let rank1 = -1;
                 for(let i = 0; i < response.data.results.length; i++) {
-                    if(response.data.results[i]._id === profile._id) {
+                    if(response.data.results[i].userId === profile._id) {
                         rank1 = i;
                     }
                 }
@@ -204,7 +204,7 @@ function Leaderboards() {
 
                 let rank1 = -1;
                 for(let i = 0; i < response.data.results.length; i++) {
-                    if(response.data.results[i]._id === profile._id) {
+                    if(response.data.results[i].userId === profile._id) {
                         rank1 = i;
                     }
                 }
@@ -332,7 +332,10 @@ function Leaderboards() {
                     [2017, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]],
                     [2016, ["Dec", "Nov", "Oct", "Sep", "Aug", "Jul", "Jun", "May", "Apr", "Mar", "Feb", "Jan"]]
                 ]} yearCallback={setSelectedYear} monthCallback={setSelectedMonth}/> */}
-                <LeaderboardMenu years={archiveSummary} yearCallback={setSelectedYear} monthCallback={setSelectedMonth}/>
+                <LeaderboardMenu 
+                    years={archiveSummary}
+                    setBoardCallback={(year, month) => {setScreen("home"); setSelectedYear(year); setSelectedMonth(month);}}
+                />
             </div>
         );
     } else if (screen === "loading") {

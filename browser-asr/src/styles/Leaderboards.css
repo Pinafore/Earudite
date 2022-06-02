@@ -200,7 +200,6 @@
     padding: 0.25rem;
     cursor: pointer;
     text-align: center;
-    margin-left: 1rem;
     font-weight: 900;
     border-radius: 0.5rem;
     align-items: center;
@@ -214,7 +213,7 @@
     padding: 0.5rem;
     cursor: pointer;
     text-align: center;
-    margin-left: 1rem;
+    margin-right: 1rem;
     font-weight: 900;
     border-radius: 0.5rem;
     align-items: center;
