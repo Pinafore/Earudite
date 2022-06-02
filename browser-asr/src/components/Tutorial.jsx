@@ -11,8 +11,7 @@ import Tutorial6 from '../assets/Tutorial6.png';
 import Tutorial7 from '../assets/Tutorial7.png';
 import Tutorial8 from '../assets/Tutorial8.png';
 import Tutorial9 from '../assets/Tutorial9.png';
-import Tutorial10 from '../assets/Tutorial9.png';
-import Tutorial11 from '../assets/Tutorial1.png';
+import Tutorial10 from '../assets/Tutorial1.png';
 
 function Tutorial() {
     const [page, setPage] = useState(0);
@@ -26,42 +25,38 @@ function Tutorial() {
         },
         {
             img: Tutorial2,
-            text: "The 'Play' tab is the hub for playing" + interface_name + ". Let's go there first!"
+            text: "The 'Play' tab is the hub for playing " + interface_name + ". Let's go there first!"
         },
         {
             img: Tutorial3,
-            text: "For this tutorial, let's go to the custom game tab..."
+            text: "For this tutorial, let's start a lobby. Note you can only be in one lobby or game at a time (including active games that you have left)!"
         },
         {
             img: Tutorial4,
-            text: "... and start a lobby. Note you can only be in one lobby or game at a time (including active games that you have left)!"
-        },
-        {
-            img: Tutorial5,
             text: "Every custom game has game settings you can adjust, and a gamecode so you can play with friends. For now, only 1 round of gameplay is supported. When, you're ready, click start."
         },
         {
-            img: Tutorial6,
+            img: Tutorial5,
             text: "A question will be read out loud and its transcript will begin playing in the textbox."
         },
         {
-            img: Tutorial7,
+            img: Tutorial6,
             text: "When you think you know the answer, click the buzz button, type your answer into the answer box, and hit submit. If it's correct, the lobby will skip to the next question. If it's wrong, the question will continue to play."
         },
         {
-            img: Tutorial8,
+            img: Tutorial7,
             text: "Answers are autograded; correct answers will get you 10 points, incorrect answers will lose you 5."
         },
         {
-            img: Tutorial9,
+            img: Tutorial8,
             text: "You can also enable voice commands with the voice commands switch."
         },
         {
-            img: Tutorial10,
+            img: Tutorial9,
             text: "When enabled, say 'go' into your microphone to buzz in, and 'stop' for the speech-to-text algorithm to output what you said into the answer box."
         },
         {
-            img: Tutorial11,
+            img: Tutorial10,
             text: "That's all for the tutorial! Good luck, and have fun!"
         }
     ]
