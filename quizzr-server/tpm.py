@@ -61,6 +61,7 @@ class QuizzrTPM:
         self.unproc_audio: Collection = self.database.UnprocessedAudio
         self.games: Collection = self.database.Games
         self.leaderboard_archive: Collection = self.database.LeaderboardArchive
+        self.leaderboard: Collection = self.database.Leaderboard
 
         self.rec_question_ids = self.get_ids(self.rec_questions)
         self.unrec_question_ids = self.get_ids(self.unrec_questions)
@@ -514,7 +515,6 @@ class QuizzrTPM:
         :return: A tuple containing the results from inserting to the Audio and UnprocessedAudio collections
                  respectively.
         """
-        self.rollover_recording_leaderboard()
         processing_list = ["normal"]
         question_audio_batch = []
         other_audio_batch = []
@@ -582,43 +582,91 @@ class QuizzrTPM:
             self.logger.info(f"Inserted {len(proc_results.inserted_ids)} buzz and/or answer recording(s) into the Audio collection")
         self.add_recs_to_users(uid2rec_docs)
 
-        now = datetime.now().isoformat()
+        leaderboard_update = []
         for uid, cumulative_score in user_cumulative_scores.items():
-            self.users.update_one(
-                {"_id": uid},
-                {"$inc": {"recordingScore": cumulative_score}, "$set": {"lastRecordingUpdate": now}}
-            )
+            leaderboard_update.append(({"_id": uid}, cumulative_score))
+
+        self.change_audio_leaderboard_entries(leaderboard_update)
+
         return question_rec_results, proc_results
 
-    def rollover_gameplay_leaderboard(self):
+    def change_game_leaderboard_entries(self, leaderboard_update):
+        """
+        Modify the game scores of multiple users and run leaderboard maintenance tasks.
+
+        :param leaderboard_update: A list of tuples each containing a MongoDB filter and the amount by which the score
+                                   of the selected user is changed (accepts negative values)
+        """
+        if not leaderboard_update:
+            return
+
+        self.rollover_game_leaderboard()
+        update_batch = []
+        now = datetime.now().isoformat()
+        for filter_, score in leaderboard_update:
+            update_batch.append(UpdateOne(filter_, {"$inc": {"gameScore": score}, "$set": {"lastGameUpdate": now}}))
+
+        self.leaderboard.bulk_write(update_batch)
+        self.rank_game_leaderboard()
+
+    def change_game_leaderboard_entry(self, filter_, score):
+        """
+        Modify the game score of a single user and run leaderboard maintenance tasks.
+
+        :param filter_: A mongoDB filter to find the user to modify
+        :param score: The amount by which the user's score is changed. Accepts negative values
+        """
+        self.rollover_game_leaderboard()
+        now = datetime.now().isoformat()
+        self.leaderboard.update_one(filter_, {"$inc": {"gameScore": score}, "$set": {"lastGameUpdate": now}})
+        self.rank_game_leaderboard()
+
+    def rank_game_leaderboard(self):
+        """
+        Update the ranks of each user in the game leaderboard.
+        """
+        update_batch = []
+        cursor = self.leaderboard.find(
+            {"gameScore": {"$exists": True}},
+            sort=[("gameScore", pymongo.DESCENDING)],
+            projection={"_id": 1, "gameScore": 1}
+        )
+
+        for i, entry in enumerate(cursor):
+            rank = i + 1 if entry["gameScore"] > 0 else None
+            update_batch.append(UpdateOne({"_id": entry["_id"]}, {"$set": {"gameRank": rank}}))
+
+        self.leaderboard.bulk_write(update_batch)
+
+    def rollover_game_leaderboard(self):
         """
         Enforce monthly reset of the gameplay leaderboard.
 
-        Note: The gameplay leaderboard will only reset when this function is called and no user has played in the
-        current month.
+        Note: The gameplay leaderboard will only reset when this function is called and at least 1 user has not played
+        in the current month.
         """
-        cursor = self.users.find(
-            {"lastRatingsUpdate": {"$exists": True}},
-            sort=[("ratings", pymongo.DESCENDING)],
-            projection={"_id": 1, "lastRatingsUpdate": 1, "ratings": 1, "username": 1})
+        cursor = self.leaderboard.find(
+            {"lastGameUpdate": {"$exists": True}},
+            sort=[("gameScore", pymongo.DESCENDING)],
+            projection={"_id": 1, "lastGameUpdate": 1, "gameScore": 1, "username": 1, "gameRank": 1})
         now = datetime.now()
         leaderboard = []
         last_update_keep = None
         for i, profile in enumerate(cursor):
-            last_update = datetime.fromisoformat(profile["lastRatingsUpdate"])
+            last_update = datetime.fromisoformat(profile["lastGameUpdate"])
             if last_update.month != now.month:
                 # Assuming that users somehow do not have different last_update_keeps.
                 last_update_keep = last_update
-                self.users.update_one(
+                self.leaderboard.update_one(
                     {"_id": profile["_id"]},
-                    {"$set": {"ratings": 0, "lastRatingsUpdate": now.isoformat()}}
+                    {"$set": {"gameScore": 0, "lastGameUpdate": now.isoformat()}}
                 )
                 # Add entry to archived leaderboard
                 leaderboard.append({
                     "userId": profile["_id"],
                     "username": profile["username"],
-                    "score": profile["ratings"],
-                    "rank": i + 1
+                    "score": profile["gameScore"],
+                    "rank": profile["gameRank"]
                 })
 
         # Archive leaderboard only if users have been reset.
@@ -630,34 +678,82 @@ class QuizzrTPM:
                 "leaderboard": leaderboard
             })
 
-    def rollover_recording_leaderboard(self):
+    def change_audio_leaderboard_entries(self, leaderboard_update):
         """
-        Enforce monthly reset of the recording leaderboard.
+        Modify the audio scores of multiple users and run leaderboard maintenance tasks.
 
-        Note: The recording leaderboard will only reset when this function is called and no user has submitted a
+        :param leaderboard_update: A list of tuples each containing a MongoDB filter and the amount by which the score
+                                   of the selected user is changed (accepts negative values)
+        """
+        self.rollover_audio_leaderboard()
+        if not leaderboard_update:
+            return
+
+        update_batch = []
+        now = datetime.now().isoformat()
+        for filter_, score in leaderboard_update:
+            update_batch.append(UpdateOne(filter_, {"$inc": {"audioScore": score}, "$set": {"lastAudioUpdate": now}}))
+
+        self.leaderboard.bulk_write(update_batch)
+        self.rank_audio_leaderboard()
+
+    def change_audio_leaderboard_entry(self, filter_, score):
+        """
+        Modify the audio score of a single user and run leaderboard maintenance tasks.
+
+        :param filter_: A mongoDB filter to find the user to modify
+        :param score: The amount by which the user's score is changed. Accepts negative values
+        """
+        self.rollover_audio_leaderboard()
+        now = datetime.now().isoformat()
+        self.leaderboard.update_one(filter_, {"$inc": {"audioScore": score}, "$set": {"lastAudioUpdate": now}})
+        self.rank_audio_leaderboard()
+
+    def rank_audio_leaderboard(self):
+        """
+        Update the ranks of each user in the game leaderboard.
+        """
+        update_batch = []
+        cursor = self.leaderboard.find(
+            {"audioScore": {"$exists": True}},
+            sort=[("audioScore", pymongo.DESCENDING)],
+            projection={"_id": 1, "audioScore": 1}
+        )
+
+        for i, entry in enumerate(cursor):
+            rank = i + 1 if entry["audioScore"] > 0 else None
+            update_batch.append(UpdateOne({"_id": entry["_id"]}, {"$set": {"audioRank": rank}}))
+
+        self.leaderboard.bulk_write(update_batch)
+
+    def rollover_audio_leaderboard(self):
+        """
+        Enforce monthly reset of the audio leaderboard.
+
+        Note: The audio leaderboard will only reset when this function is called and at least 1 user has not submitted a
         recording in the current month.
         """
-        cursor = self.users.find(
-            {"lastRecordingUpdate": {"$exists": True}},
-            sort=[("recordingScore", pymongo.DESCENDING)],
-            projection={"_id": 1, "lastRecordingUpdate": 1, "recordingScore": 1, "username": 1})
+        cursor = self.leaderboard.find(
+            {"lastAudioUpdate": {"$exists": True}},
+            sort=[("audioScore", pymongo.DESCENDING)],
+            projection={"_id": 1, "lastAudioUpdate": 1, "audioScore": 1, "username": 1, "audioRank": 1})
         now = datetime.now()
         leaderboard = []
         last_update_keep = None
         for i, profile in enumerate(cursor):
-            last_update = datetime.fromisoformat(profile["lastRecordingUpdate"])
+            last_update = datetime.fromisoformat(profile["lastAudioUpdate"])
             if last_update.month != now.month:
                 last_update_keep = last_update
-                self.users.update_one(
+                self.leaderboard.update_one(
                     {"_id": profile["_id"]},
-                    {"$set": {"recordingScore": 0, "lastRecordingUpdate": now.isoformat()}}
+                    {"$set": {"audioScore": 0, "lastAudioUpdate": now.isoformat()}}
                 )
                 # Add entry to archived leaderboard
                 leaderboard.append({
                     "userId": profile["_id"],
                     "username": profile["username"],
-                    "score": profile["recordingScore"],
-                    "rank": i + 1
+                    "score": profile["audioScore"],
+                    "rank": profile["audioRank"]
                 })
 
         # Archive leaderboard only if users have been reset.
@@ -701,7 +797,6 @@ class QuizzrTPM:
             "pfp": pfp,
             "username": username,
             "usernameSpecs": '',
-            "ratings": 0,
             "totalQuestionsPlayed": 0,
             "totalGames": 0,
             "coins": 0,
@@ -712,10 +807,18 @@ class QuizzrTPM:
             "playTime": 0,
             "creationDate": datetime.now().isoformat(),
             "recVotes": [],
-            "recordingScore": 0,
             "consented": consented
         }
-        return self.users.replace_one({"_id": user_id}, profile, upsert=True)
+        leaderboard_profile = {
+            "_id": user_id,
+            "username": username,
+            "gameScore": 0,
+            "audioScore": 0,
+            "gameRank": None,
+            "audioRank": None
+        }
+        return (self.users.replace_one({"_id": user_id}, profile, upsert=True),
+                self.leaderboard.replace_one({"_id": user_id}, leaderboard_profile, upsert=True))
 
     def modify_profile(self, user_id: str, update_args: Dict[str, Any]):
         """

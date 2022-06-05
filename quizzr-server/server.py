@@ -118,12 +118,12 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 "collection": "Users"
             },
             "leaderboard": {
-                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "ratings": 1},
-                "collection": "Users"
+                "projection": {"username": 1, "gameScore": 1, "gameRank": 1},
+                "collection": "Leaderboard"
             },
             "leaderboardAudio": {
-                "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1, "recordingScore": 1},
-                "collection": "Users"
+                "projection": {"username": 1, "audioScore": 1, "audioRank": 1},
+                "collection": "Leaderboard"
             },
             "public": {
                 "projection": {"pfp": 1, "username": 1, "usernameSpecs": 1},
@@ -912,7 +912,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 )
 
         # Decrease the total recording score of a user who deleted an audio file
-        qtpm.users.update_one({"_id": audio_doc["userId"]}, {"$inc": {"recordingScore": -audio_doc["recordingScore"]}})
+        qtpm.change_audio_leaderboard_entry({"_id": audio_doc["userId"]}, -audio_doc["recordingScore"])
 
         return "", HTTPStatus.OK
 
@@ -1129,17 +1129,11 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 log_msg=True
             )
 
-        qtpm.rollover_gameplay_leaderboard()
-
-        now = datetime.now().isoformat()
-        update_batch = []
+        leaderboard_update = []
         for username, rating in ratings.items():
-            update_batch.append(UpdateOne(
-                {"username": username},
-                {"$inc": {"ratings": rating}, "$set": {"lastRatingsUpdate": now}}
-            ))
+            leaderboard_update.append(({"username": username}, rating))
 
-        if not update_batch:
+        if not leaderboard_update:
             return _make_err_response(
                 "No users to update",
                 "empty_args",
@@ -1147,7 +1141,7 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
                 log_msg=True
             )
 
-        qtpm.users.bulk_write(update_batch)
+        qtpm.change_game_leaderboard_entries(leaderboard_update)
 
         return "", HTTPStatus.OK
 
@@ -1605,18 +1599,19 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             )
         visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboard"]
         cursor = qtpm.database.get_collection(visibility_config["collection"]).find(
-            {"ratings": {"$exists": True, "$gt": 0}},
-            sort=[("ratings", pymongo.DESCENDING)],
+            {"gameScore": {"$exists": True, "$gt": 0}},
+            sort=[("gameScore", pymongo.DESCENDING)],
             limit=size,
             projection=visibility_config["projection"]
         )
         results = []
         for i, doc in enumerate(cursor):
-            doc["score"] = doc["ratings"]
-            del doc["ratings"]
+            doc["score"] = doc["gameScore"]
+            del doc["gameScore"]
             doc["userId"] = doc["_id"]
             del doc["_id"]
-            doc["rank"] = i + 1
+            doc["rank"] = doc["gameRank"]
+            del doc["gameRank"]
             results.append(doc)
         return {"results": results}
 
@@ -1632,25 +1627,25 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
         arg_size = request.args.get("size")
         size = arg_size or app.config["DEFAULT_LEADERBOARD_SIZE"]
         cursor = qtpm.database.get_collection(visibility_config["collection"]).find(
-            {f"recordingScore": {"$exists": True, "$gt": 0}},
-            sort=[(f"recordingScore", pymongo.DESCENDING)],
+            {"audioScore": {"$exists": True, "$gt": 0}},
+            sort=[("audioScore", pymongo.DESCENDING)],
             limit=size,
             projection=visibility_config["projection"]
         )
         results = []
         for i, doc in enumerate(cursor):
-            doc["score"] = doc["recordingScore"]
-            del doc["recordingScore"]
+            doc["score"] = doc["audioScore"]
+            del doc["audioScore"]
             doc["userId"] = doc["_id"]
             del doc["_id"]
-            doc["rank"] = i + 1
+            doc["rank"] = doc["audioRank"]
+            del doc["audioRank"]
             results.append(doc)
         return {"results": results}
 
     @app.route("/leaderboard/archive/summary", methods=["GET"])
     def get_leaderboard_summary():
         _block_users()
-        # TODO: Make the years and months sorted.
         month_order = {
             "Jan": 0,
             "Feb": 1,
@@ -1695,6 +1690,33 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
 
         return {"results": leaderboard["leaderboard"]}
 
+    @app.route("/leaderboard/archive/<int:year>/<month>/rank/<username>", methods=["GET"])
+    def get_old_leaderboard_rank(year, month, username):
+        leaderboard = qtpm.leaderboard_archive.find_one(
+            {"month": month, "year": year, "type": "gameplay"},
+            projection={"leaderboard": 1}
+        )
+        if not leaderboard:
+            return _make_err_response(
+                "Could not find leaderboard",
+                "not_found",
+                HTTPStatus.NOT_FOUND,
+                [year, month],
+                True
+            )
+
+        for entry in leaderboard["leaderboard"]:
+            if entry["username"] == username:
+                return {"rank": entry["rank"]}
+
+        return _make_err_response(
+            f"Leaderboard rank not found for user '{username}'",
+            "not_found",
+            HTTPStatus.NOT_FOUND,
+            [username],
+            True
+        )
+
     @app.route("/leaderboard/audio/archive/<int:year>/<month>", methods=["GET"])
     def get_old_audio_leaderboard(year, month):
         leaderboard = qtpm.leaderboard_archive.find_one(
@@ -1711,6 +1733,71 @@ def create_app(test_overrides: dict = None, test_inst_path: str = None, test_sto
             )
 
         return {"results": leaderboard["leaderboard"]}
+
+    @app.route("/leaderboard/audio/archive/<int:year>/<month>/rank/<username>", methods=["GET"])
+    def get_old_audio_leaderboard_rank(year, month, username):
+        leaderboard = qtpm.leaderboard_archive.find_one(
+            {"month": month, "year": year, "type": "recording"},
+            projection={"leaderboard": 1}
+        )
+        if not leaderboard:
+            return _make_err_response(
+                "Could not find leaderboard",
+                "not_found",
+                HTTPStatus.NOT_FOUND,
+                [year, month],
+                True
+            )
+
+        for entry in leaderboard["leaderboard"]:
+            if entry["username"] == username:
+                return {"rank": entry["rank"]}
+
+        return _make_err_response(
+            f"Leaderboard rank not found for user '{username}'",
+            "not_found",
+            HTTPStatus.NOT_FOUND,
+            [username],
+            True
+        )
+
+    @app.route("/leaderboard/rank/<username>", methods=["GET"])
+    def get_leaderboard_rank(username):
+        visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboard"]
+        result = qtpm.database.get_collection(visibility_config["collection"]).find_one({
+            "gameRank": {"$exists": True},
+            "username": username
+        }, projection={"gameRank": 1})
+
+        if result:
+            return {"rank": result["gameRank"]}
+
+        return _make_err_response(
+            f"Leaderboard rank not found for user '{username}'",
+            "not_found",
+            HTTPStatus.NOT_FOUND,
+            [username],
+            True
+        )
+
+    @app.route("/leaderboard/audio/rank/<username>", methods=["GET"])
+    def get_audio_leaderboard_rank(username):
+        visibility_config = app.config["VISIBILITY_CONFIGS"]["leaderboard"]
+        result = qtpm.database.get_collection(visibility_config["collection"]).find_one({
+            "audioRank": {"$exists": True},
+            "username": username
+        }, projection={"audioRank": 1})
+
+        if result:
+            return {"rank": result["audioRank"]}
+
+        return _make_err_response(
+            f"Leaderboard rank not found for user '{username}'",
+            "not_found",
+            HTTPStatus.NOT_FOUND,
+            [username],
+            True
+        )
 
     @app.route("/prescreen/<pointer>", methods=["GET"])
     def get_prescreen_status(pointer):
